@@ -1,0 +1,3 @@
+[submodule "SharedData"]
+	path = SharedData
+	url = https://github.com/insthync/UnityMultiplayerARPG_SharedData.git
