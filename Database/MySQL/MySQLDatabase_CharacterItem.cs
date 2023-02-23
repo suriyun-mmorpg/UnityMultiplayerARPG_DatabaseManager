@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using LiteNetLibManager;
 using MySqlConnector;
 
 namespace MultiplayerARPG.MMO
@@ -11,7 +10,7 @@ namespace MultiplayerARPG.MMO
             string id = characterItem.id;
             if (insertedIds.Contains(id))
             {
-                Logging.LogWarning($"Item {id}, inventory type {inventoryType}, for character {characterId}, already inserted");
+                _app.Logger.LogWarning($"Item {id}, inventory type {inventoryType}, for character {characterId}, already inserted");
                 return;
             }
             if (string.IsNullOrEmpty(characterItem.id))

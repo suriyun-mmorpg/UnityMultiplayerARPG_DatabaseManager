@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using MySqlConnector;
-using LiteNetLibManager;
 
 namespace MultiplayerARPG.MMO
 {
@@ -11,7 +10,7 @@ namespace MultiplayerARPG.MMO
             string id = characterItem.id;
             if (insertedIds.Contains(id))
             {
-                Logging.LogWarning($"Storage item {id}, storage type {storageType}, owner {storageOwnerId}, already inserted");
+                _app.Logger.LogWarning($"Storage item {id}, storage type {storageType}, owner {storageOwnerId}, already inserted");
                 return;
             }
             if (string.IsNullOrEmpty(characterItem.id))
@@ -90,8 +89,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing storage items");
-                Logging.LogException(LogTag, ex);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing storage items");
                 transaction.Rollback();
             }
             transaction.Dispose();

@@ -9,393 +9,62 @@ namespace MultiplayerARPG.MMO
 {
     public partial class MySQLDatabase : BaseDatabase
     {
-        public static readonly string LogTag = nameof(MySQLDatabase);
+        private WebApplication _app;
+        private MySQLConfig _config;
 
-        private string address = "127.0.0.1";
-        private int port = 3306;
-        private string username = "root";
-        private string password = "";
-        private string dbName = "mmorpgtemplate";
-
-        public override void Initialize()
+        public override void Initialize(WebApplication app)
         {
+            _app = app;
+            _config = new MySQLConfig();
             // Json file read
             bool configFileFound = false;
             string configFolder = "./config";
             string configFilePath = configFolder + "/mySqlConfig.json";
-            Dictionary<string, object> jsonConfig = new Dictionary<string, object>();
-            Logging.Log(LogTag, "Reading config file from " + configFilePath);
+            _app.Logger.LogInformation("Reading config file from " + configFilePath);
             if (File.Exists(configFilePath))
             {
-                Logging.Log(LogTag, "Found config file");
+                _app.Logger.LogInformation("Found config file");
                 string dataAsJson = File.ReadAllText(configFilePath);
-                jsonConfig = Json.Deserialize(dataAsJson) as Dictionary<string, object>;
+                _config = JsonConvert.DeserializeObject<MySQLConfig>(dataAsJson);
                 configFileFound = true;
             }
-
-            ConfigReader.ReadConfigs(jsonConfig, "mySqlAddress", out address, address);
-            jsonConfig["mySqlAddress"] = address;
-
-            ConfigReader.ReadConfigs(jsonConfig, "mySqlPort", out port, port);
-            jsonConfig["mySqlPort"] = port;
-
-            ConfigReader.ReadConfigs(jsonConfig, "mySqlUsername", out username, username);
-            jsonConfig["mySqlUsername"] = username;
-
-            ConfigReader.ReadConfigs(jsonConfig, "mySqlPassword", out password, password);
-            jsonConfig["mySqlPassword"] = password;
-
-            ConfigReader.ReadConfigs(jsonConfig, "mySqlDbName", out dbName, dbName);
-            jsonConfig["mySqlDbName"] = dbName;
 
             if (!configFileFound)
             {
                 // Write config file
-                Logging.Log(LogTag, "Not found config file, creating a new one");
+                _app.Logger.LogInformation("Not found config file, creating a new one");
                 if (!Directory.Exists(configFolder))
                     Directory.CreateDirectory(configFolder);
-                File.WriteAllText(configFilePath, Json.Serialize(jsonConfig));
+                File.WriteAllText(configFilePath, JsonConvert.SerializeObject(_config));
             }
 
             Migration();
-            this.InvokeInstanceDevExtMethods("Init");
         }
 
         private void Migration()
         {
-            // 1.57b
-            string migrationId = "1.57b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                // Migrate data
-                try
-                {
-                    // Avoid exception which occuring when `dataId` field not found
-                    foreach (BuildingEntity prefab in GameInstance.BuildingEntities.Values)
-                    {
-                        ExecuteNonQuerySync("UPDATE buildings SET entityId=@entityId, dataId=0 WHERE dataId=@dataId",
-                            new MySqlParameter("entityId", prefab.EntityId),
-                            new MySqlParameter("dataId", prefab.name.GenerateHashId()));
-                    }
-                }
-                catch { }
-                // Migrate fields
-                try
-                {
-                    // Avoid exception which occuring when `dataId` field not found
-                    ExecuteNonQuerySync("ALTER TABLE buildings DROP dataId;");
-                }
-                catch { }
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.58";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characterbuff` CHANGE `type` `type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `characterhotkey` CHANGE `type` `type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` CHANGE `inventoryType` `inventoryType` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `characterskillusage` CHANGE `type` `type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `charactersummon` CHANGE `type` `type` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` CHANGE `storageType` `storageType` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `userlogin` CHANGE `authType` `authType` TINYINT(3) UNSIGNED NOT NULL DEFAULT '1';");
-                ExecuteNonQuerySync("ALTER TABLE `userlogin` CHANGE `userLevel` `userLevel` TINYINT(3) UNSIGNED NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `currentRotationX` FLOAT NOT NULL DEFAULT '0' AFTER `currentPositionZ`;");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `currentRotationY` FLOAT NOT NULL DEFAULT '0' AFTER `currentRotationX`;");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `currentRotationZ` FLOAT NOT NULL DEFAULT '0' AFTER `currentRotationY`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.60c";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characterquest` ADD `completedTasks` TEXT NOT NULL AFTER `killedMonsters`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.61";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("CREATE TABLE `charactercurrency` ("
-                    + "`id` varchar(50) COLLATE utf8_unicode_ci NOT NULL,"
-                    + "`idx` int(11) NOT NULL,"
-                    + "`characterId` varchar(50) COLLATE utf8_unicode_ci NOT NULL,"
-                    + "`dataId` int(11) NOT NULL DEFAULT '0',"
-                    + "`amount` int(11) NOT NULL DEFAULT '0',"
-                    + "`createAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "`updateAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(`id`)) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_unicode_ci;");
-                ExecuteNonQuerySync("CREATE TABLE `mail` ("
-                    + "`id` bigint(20) NOT NULL AUTO_INCREMENT,"
-                    + "`eventId` varchar(50) NULL DEFAULT NULL,"
-                    + "`senderId` varchar(50) NULL DEFAULT NULL,"
-                    + "`senderName` varchar(32) NULL DEFAULT NULL,"
-                    + "`receiverId` varchar(50) NOT NULL,"
-                    + "`title` varchar(160) NOT NULL,"
-                    + "`content` text NOT NULL,"
-                    + "`gold` int(11) NOT NULL,"
-                    + "`currencies` TEXT NOT NULL,"
-                    + "`items` text NOT NULL,"
-                    + "`isRead` tinyint(1) NOT NULL DEFAULT FALSE,"
-                    + "`readTimestamp` timestamp NULL DEFAULT NULL,"
-                    + "`isDelete` tinyint(1) NOT NULL DEFAULT FALSE,"
-                    + "`deleteTimestamp` timestamp NULL DEFAULT NULL,"
-                    + "`sentTimestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                    + "PRIMARY KEY(`id`)) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE utf8_unicode_ci;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.61b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD `isClaim` tinyint(1) NOT NULL DEFAULT 0 AFTER `readTimestamp`, ADD `claimTimestamp` timestamp NULL DEFAULT NULL AFTER `isClaim`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.62e";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characterattribute` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterattribute` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterbuff` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `charactercurrency` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `charactercurrency` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterhotkey` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterhotkey` ADD INDEX(`hotkeyId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` ADD INDEX(`inventoryType`);");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterquest` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterquest` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD INDEX(`userId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD INDEX(`factionId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD INDEX(`partyId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD INDEX(`guildId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterskill` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterskill` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `characterskillusage` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `charactersummon` ADD INDEX(`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `friend` ADD INDEX(`characterId1`);");
-                ExecuteNonQuerySync("ALTER TABLE `friend` ADD INDEX(`characterId2`);");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD INDEX(`leaderId`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`eventId`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`senderId`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`senderName`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`receiverId`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`isRead`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`isClaim`);");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD INDEX(`isDelete`);");
-                ExecuteNonQuerySync("ALTER TABLE `party` ADD INDEX(`leaderId`);");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` ADD INDEX(`idx`);");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` ADD INDEX(`storageType`);");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` ADD INDEX(`storageOwnerId`);");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.63b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `lastDeadTime` INT NOT NULL DEFAULT '0' AFTER `mountDataId`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.65d";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characters` CHANGE `statPoint` `statPoint` FLOAT NOT NULL DEFAULT '0', CHANGE `skillPoint` `skillPoint` FLOAT NOT NULL DEFAULT '0';");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.67";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `guildMessage2` VARCHAR(160) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL AFTER `guildMessage`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `score` INT(11) NOT NULL DEFAULT '0' AFTER `gold`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `optionId1` INT(11) NOT NULL DEFAULT '0' AFTER `score`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `optionId2` INT(11) NOT NULL DEFAULT '0' AFTER `optionId1`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `optionId3` INT(11) NOT NULL DEFAULT '0' AFTER `optionId2`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `optionId4` INT(11) NOT NULL DEFAULT '0' AFTER `optionId3`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `optionId5` INT(11) NOT NULL DEFAULT '0' AFTER `optionId4`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `autoAcceptRequests` TINYINT(1) NOT NULL DEFAULT '0' AFTER `optionId5`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `rank` INT(11) NOT NULL DEFAULT '0' AFTER `autoAcceptRequests`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `currentMembers` INT(11) NOT NULL DEFAULT '0' AFTER `rank`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `maxMembers` INT(11) NOT NULL DEFAULT '0' AFTER `currentMembers`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.67b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `mail` CHANGE `gold` `gold` INT(11) NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `mail` ADD `cash` INT(11) NOT NULL DEFAULT '0' AFTER `gold`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` DROP `optionId1`, DROP `optionId2`, DROP `optionId3`, DROP `optionId4`, DROP `optionId5`;");
-                ExecuteNonQuerySync("ALTER TABLE `guild` ADD `options` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL AFTER `score`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.69";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characterquest` ADD `isTracking` TINYINT(1) NOT NULL DEFAULT '0' AFTER `isComplete`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.70";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characters` CHANGE `lastDeadTime` `lastDeadTime` BIGINT NOT NULL DEFAULT '0';");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `unmuteTime` BIGINT NOT NULL DEFAULT '0' AFTER `lastDeadTime`;");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` ADD `expireTime` BIGINT NOT NULL DEFAULT '0' AFTER `lockRemainsDuration`;");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` ADD `randomSeed` TINYINT UNSIGNED NOT NULL DEFAULT '0' AFTER `expireTime`;");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` ADD `expireTime` BIGINT NOT NULL DEFAULT '0' AFTER `lockRemainsDuration`;");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` ADD `randomSeed` TINYINT UNSIGNED NOT NULL DEFAULT '0' AFTER `expireTime`;");
-                ExecuteNonQuerySync("ALTER TABLE `userlogin` ADD `unbanTime` BIGINT NOT NULL DEFAULT '0' AFTER `userLevel`;");
-                ExecuteNonQuerySync("ALTER TABLE `userlogin` CHANGE `password` `password` VARCHAR(72) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.71";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `buildings` ADD `extraData` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL AFTER `creatorName`;");
-                ExecuteNonQuerySync("CREATE TABLE `summonbuffs` (" +
-                    "`id` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL," +
-                    "`characterId` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL," +
-                    "`buffId` varchar(50) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL," +
-                    "`type` tinyint UNSIGNED NOT NULL DEFAULT '0'," +
-                    "`dataId` int NOT NULL DEFAULT '0'," +
-                    "`level` int NOT NULL DEFAULT '1'," +
-                    "`buffRemainsDuration` float NOT NULL DEFAULT '0'," +
-                    "`createAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                    "`updateAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" +
-                    ") ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_unicode_ci;");
-                ExecuteNonQuerySync("ALTER TABLE `summonbuffs` ADD PRIMARY KEY (`id`);");
-                ExecuteNonQuerySync("ALTER TABLE `summonbuffs` ADD KEY (`characterId`);");
-                ExecuteNonQuerySync("ALTER TABLE `summonbuffs` ADD KEY (`buffId`);");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.71b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `userlogin` ADD `isEmailVerified` tinyint(1) NOT NULL DEFAULT '0' AFTER `email`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.72d";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characteritem` CHANGE `randomSeed` `randomSeed` INT NOT NULL DEFAULT '0';");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.73";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` CHANGE `randomSeed` `randomSeed` INT NOT NULL DEFAULT '0';");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.76";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `friend` ADD `state` tinyint(1) NOT NULL DEFAULT '0' AFTER `characterId2`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.77";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("CREATE TABLE `statistic` (`userCount` INT NOT NULL DEFAULT '0' ) ENGINE = InnoDB DEFAULT CHARSET = utf8 COLLATE = utf8_unicode_ci");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.78";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characters` ADD `iconDataId` INT NOT NULL DEFAULT '0' AFTER `mountDataId`, ADD `frameDataId` INT NOT NULL DEFAULT '0' AFTER `iconDataId`, ADD `titleDataId` INT NOT NULL DEFAULT '0' AFTER `frameDataId`;");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.78b";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `storageitem` CHANGE `randomSeed` `randomSeed` INT(11) NOT NULL DEFAULT '0';");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
-            migrationId = "1.79";
-            if (!HasMigrationId(migrationId))
-            {
-                Logging.Log(LogTag, $"Migrating up to {migrationId}");
-                ExecuteNonQuerySync("ALTER TABLE `characterattribute` DROP `idx`;");
-                ExecuteNonQuerySync("ALTER TABLE `charactercurrency` DROP `idx`;");
-                ExecuteNonQuerySync("ALTER TABLE `characterquest` DROP `idx`;");
-                ExecuteNonQuerySync("ALTER TABLE `characterskill` DROP `idx`;");
-                ExecuteNonQuerySync("ALTER TABLE `statistic` ADD `id` INT NOT NULL FIRST, ADD PRIMARY KEY(`id`);");
-                // Insert migrate history
-                InsertMigrationId(migrationId);
-                Logging.Log(LogTag, $"Migrated to {migrationId}");
-            }
 
         }
+
         private bool HasMigrationId(string migrationId)
         {
             object result = ExecuteScalarSync("SELECT COUNT(*) FROM __migrations WHERE migrationId=@migrationId", new MySqlParameter("@migrationId", migrationId));
             long count = result != null ? (long)result : 0;
             return count > 0;
         }
+
         public void InsertMigrationId(string migrationId)
         {
             ExecuteNonQuerySync("INSERT INTO __migrations (migrationId) VALUES (@migrationId)", new MySqlParameter("@migrationId", migrationId));
         }
+
         public string GetConnectionString()
         {
-            string connectionString = "Server=" + address + ";" +
-            "Port=" + port + ";" +
-            "Uid=" + username + ";" +
-                (string.IsNullOrEmpty(password) ? "" : "Pwd=\"" + password + "\";") +
-                "Database=" + dbName + ";" +
+            string connectionString = "Server=" + _config.address + ";" +
+            "Port=" + _config.port + ";" +
+            "Uid=" + _config.username + ";" +
+                (string.IsNullOrEmpty(_config.password) ? "" : "Pwd=\"" + _config.password + "\";") +
+                "Database=" + _config.dbName + ";" +
                 "SSL Mode=None;";
             return connectionString;
         }
@@ -413,7 +82,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (MySqlException ex)
             {
-                Logging.LogException(LogTag, ex);
+                _app.Logger.LogCritical(ex, string.Empty);
             }
         }
 
@@ -425,7 +94,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (MySqlException ex)
             {
-                Logging.LogException(LogTag, ex);
+                _app.Logger.LogCritical(ex, string.Empty);
             }
         }
 
@@ -464,7 +133,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -507,7 +176,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -549,7 +218,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -591,7 +260,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -633,7 +302,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -675,7 +344,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -717,7 +386,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -758,7 +427,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    Logging.LogException(LogTag, ex);
+                    _app.Logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)

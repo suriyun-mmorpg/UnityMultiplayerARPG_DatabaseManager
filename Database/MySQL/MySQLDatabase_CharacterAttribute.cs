@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Cysharp.Text;
-using LiteNetLibManager;
 using MySqlConnector;
 
 namespace MultiplayerARPG.MMO
@@ -25,7 +24,7 @@ namespace MultiplayerARPG.MMO
             string id = ZString.Concat(characterId, "_", characterAttribute.dataId);
             if (insertedIds.Contains(id))
             {
-                Logging.LogWarning($"Attribute {id}, for character {characterId}, already inserted");
+                _app.Logger.LogWarning($"Attribute {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);

@@ -7,7 +7,7 @@ namespace MultiplayerARPG.MMO
 
         public const byte AUTH_TYPE_NORMAL = 1;
 
-        public virtual void Initialize() { }
+        public virtual void Initialize(WebApplication app) { }
         public virtual void Destroy() { }
         public abstract string ValidateUserLogin(string username, string password);
         public abstract bool ValidateAccessToken(string userId, string accessToken);

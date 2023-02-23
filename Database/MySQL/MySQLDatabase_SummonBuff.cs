@@ -79,8 +79,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing buffs of summon: " + characterId);
-                Logging.LogException(LogTag, ex);
+                _app.Logger.LogCritical(ex, $"Transaction, Error occurs while replacing buffs of summon: {characterId}");
                 transaction.Rollback();
             }
             transaction.Dispose();
