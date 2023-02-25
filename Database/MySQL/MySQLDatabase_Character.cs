@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using LiteNetLibManager;
 using UnityEngine;
 using MySqlConnector;
 
@@ -25,8 +24,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing attributes of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing attributes of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -51,8 +49,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing buffs of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing buffs of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -77,8 +74,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing hotkeys of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing hotkeys of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -111,8 +107,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing items of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing items of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -137,8 +132,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing quests of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing quests of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -163,8 +157,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing currencies of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing currencies of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -189,8 +182,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing skills of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing skills of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -215,8 +207,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing skill usages of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing skill usages of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -241,8 +232,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                Logging.LogError(LogTag, "Transaction, Error occurs while replacing skill usages of character: " + characterData.Id);
-                _app.Logger.LogCritical(ex, string.Empty);
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing skill usages of character: " + characterData.Id);
                 transaction.Rollback();
             }
             transaction.Dispose();
@@ -579,8 +569,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (System.Exception ex)
                 {
-                    Logging.LogError(LogTag, "Transaction, Error occurs while deleting character: " + id);
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _app.Logger.LogCritical(ex, "Transaction, Error occurs while deleting character: " + id);
                     transaction.Rollback();
                 }
                 transaction.Dispose();

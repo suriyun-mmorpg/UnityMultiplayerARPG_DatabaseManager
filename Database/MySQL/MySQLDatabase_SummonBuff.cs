@@ -1,5 +1,4 @@
-﻿using LiteNetLibManager;
-using MySqlConnector;
+﻿using MySqlConnector;
 using System.Collections.Generic;
 
 namespace MultiplayerARPG.MMO
@@ -11,7 +10,7 @@ namespace MultiplayerARPG.MMO
             string id = summonBuff.id;
             if (insertedIds.Contains(id))
             {
-                Logging.LogWarning($"Summon buff {id}, for character {characterId}, already inserted");
+                _app.Logger.LogWarning($"Summon buff {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);
@@ -79,7 +78,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                _app.Logger.LogCritical(ex, $"Transaction, Error occurs while replacing buffs of summon: {characterId}");
+                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing buffs of summon: " + characterId);
                 transaction.Rollback();
             }
             transaction.Dispose();
