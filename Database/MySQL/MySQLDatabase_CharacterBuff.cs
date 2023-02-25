@@ -27,7 +27,7 @@ namespace MultiplayerARPG.MMO
             string id = characterBuff.id;
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Buff {id}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Buff {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);

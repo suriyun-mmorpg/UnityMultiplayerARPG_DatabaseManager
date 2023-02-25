@@ -24,7 +24,7 @@ namespace MultiplayerARPG.MMO
             string id = ZString.Concat(characterId, "_", characterCurrency.dataId);
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Currency {id}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Currency {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);

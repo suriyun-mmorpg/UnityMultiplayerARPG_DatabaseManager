@@ -25,7 +25,7 @@ namespace MultiplayerARPG.MMO
             string id = ZString.Concat(characterId, "_", characterHotkey.hotkeyId);
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Hotkey {id}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Hotkey {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);

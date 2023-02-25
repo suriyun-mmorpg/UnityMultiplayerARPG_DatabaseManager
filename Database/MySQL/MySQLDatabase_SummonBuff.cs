@@ -10,7 +10,7 @@ namespace MultiplayerARPG.MMO
             string id = summonBuff.id;
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Summon buff {id}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Summon buff {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);
@@ -78,7 +78,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (System.Exception ex)
             {
-                _app.Logger.LogCritical(ex, "Transaction, Error occurs while replacing buffs of summon: " + characterId);
+                _logger.LogCritical(ex, "Transaction, Error occurs while replacing buffs of summon: " + characterId);
                 transaction.Rollback();
             }
             transaction.Dispose();

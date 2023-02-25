@@ -10,7 +10,7 @@ namespace MultiplayerARPG.MMO
             string id = characterItem.id;
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Item {id}, inventory type {inventoryType}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Item {id}, inventory type {inventoryType}, for character {characterId}, already inserted");
                 return;
             }
             if (string.IsNullOrEmpty(characterItem.id))

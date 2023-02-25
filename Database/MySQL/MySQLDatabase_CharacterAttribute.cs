@@ -24,7 +24,7 @@ namespace MultiplayerARPG.MMO
             string id = ZString.Concat(characterId, "_", characterAttribute.dataId);
             if (insertedIds.Contains(id))
             {
-                _app.Logger.LogWarning($"Attribute {id}, for character {characterId}, already inserted");
+                _logger.LogWarning($"Attribute {id}, for character {characterId}, already inserted");
                 return;
             }
             insertedIds.Add(id);

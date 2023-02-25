@@ -9,21 +9,21 @@ namespace MultiplayerARPG.MMO
 {
     public partial class MySQLDatabase : BaseDatabase
     {
-        private WebApplication _app;
+        private ILogger _logger;
         private MySQLConfig _config;
 
-        public override void Initialize(WebApplication app)
+        public override void Initialize(ILogger logger)
         {
-            _app = app;
+            _logger = logger;
             _config = new MySQLConfig();
             // Json file read
             bool configFileFound = false;
             string configFolder = "./config";
             string configFilePath = configFolder + "/mySqlConfig.json";
-            _app.Logger.LogInformation("Reading config file from " + configFilePath);
+            _logger.LogInformation("Reading config file from " + configFilePath);
             if (File.Exists(configFilePath))
             {
-                _app.Logger.LogInformation("Found config file");
+                _logger.LogInformation("Found config file");
                 string dataAsJson = File.ReadAllText(configFilePath);
                 _config = JsonConvert.DeserializeObject<MySQLConfig>(dataAsJson);
                 configFileFound = true;
@@ -32,7 +32,7 @@ namespace MultiplayerARPG.MMO
             if (!configFileFound)
             {
                 // Write config file
-                _app.Logger.LogInformation("Not found config file, creating a new one");
+                _logger.LogInformation("Not found config file, creating a new one");
                 if (!Directory.Exists(configFolder))
                     Directory.CreateDirectory(configFolder);
                 File.WriteAllText(configFilePath, JsonConvert.SerializeObject(_config));
@@ -82,7 +82,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (MySqlException ex)
             {
-                _app.Logger.LogCritical(ex, string.Empty);
+                _logger.LogCritical(ex, string.Empty);
             }
         }
 
@@ -94,7 +94,7 @@ namespace MultiplayerARPG.MMO
             }
             catch (MySqlException ex)
             {
-                _app.Logger.LogCritical(ex, string.Empty);
+                _logger.LogCritical(ex, string.Empty);
             }
         }
 
@@ -133,7 +133,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -176,7 +176,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -218,7 +218,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -260,7 +260,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -302,7 +302,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -344,7 +344,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -386,7 +386,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
@@ -427,7 +427,7 @@ namespace MultiplayerARPG.MMO
                 }
                 catch (MySqlException ex)
                 {
-                    _app.Logger.LogCritical(ex, string.Empty);
+                    _logger.LogCritical(ex, string.Empty);
                 }
             }
             if (createLocalConnection)
