@@ -96,7 +96,6 @@ namespace MultiplayerARPG.MMO
                 new MySqlParameter("@entityId", building.EntityId),
                 new MySqlParameter("@currentHp", building.CurrentHp),
                 new MySqlParameter("@remainsLifeTime", building.RemainsLifeTime),
-                new MySqlParameter("@mapName", mapName),
                 new MySqlParameter("@isLocked", building.IsLocked),
                 new MySqlParameter("@lockPassword", building.LockPassword),
                 new MySqlParameter("@creatorId", building.CreatorId),
@@ -107,7 +106,8 @@ namespace MultiplayerARPG.MMO
                 new MySqlParameter("@positionZ", building.PositionZ),
                 new MySqlParameter("@rotationX", building.RotationX),
                 new MySqlParameter("@rotationY", building.RotationY),
-                new MySqlParameter("@rotationZ", building.RotationZ));
+                new MySqlParameter("@rotationZ", building.RotationZ),
+                new MySqlParameter("@mapName", mapName));
             connection.Close();
         }
 

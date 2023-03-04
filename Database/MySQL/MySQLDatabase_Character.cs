@@ -251,45 +251,45 @@ namespace MultiplayerARPG.MMO
             FillCharacterSummons(characterData);
         }
 
-        public override void CreateCharacter(string userId, IPlayerCharacterData characterData)
+        public override void CreateCharacter(string userId, IPlayerCharacterData character)
         {
             ExecuteNonQuerySync("INSERT INTO characters " +
                 "(id, userId, dataId, entityId, factionId, characterName, level, exp, currentHp, currentMp, currentStamina, currentFood, currentWater, equipWeaponSet, statPoint, skillPoint, gold, currentMapName, currentPositionX, currentPositionY, currentPositionZ, currentRotationX, currentRotationY, currentRotationZ, respawnMapName, respawnPositionX, respawnPositionY, respawnPositionZ, mountDataId, iconDataId, frameDataId, titleDataId) VALUES " +
                 "(@id, @userId, @dataId, @entityId, @factionId, @characterName, @level, @exp, @currentHp, @currentMp, @currentStamina, @currentFood, @currentWater, @equipWeaponSet, @statPoint, @skillPoint, @gold, @currentMapName, @currentPositionX, @currentPositionY, @currentPositionZ, @currentRotationX, @currentRotationY, @currentRotationZ, @respawnMapName, @respawnPositionX, @respawnPositionY, @respawnPositionZ, @mountDataId, @iconDataId, @frameDataId, @titleDataId)",
-                new MySqlParameter("@id", characterData.Id),
+                new MySqlParameter("@id", character.Id),
                 new MySqlParameter("@userId", userId),
-                new MySqlParameter("@dataId", characterData.DataId),
-                new MySqlParameter("@entityId", characterData.EntityId),
-                new MySqlParameter("@factionId", characterData.FactionId),
-                new MySqlParameter("@characterName", characterData.CharacterName),
-                new MySqlParameter("@level", characterData.Level),
-                new MySqlParameter("@exp", characterData.Exp),
-                new MySqlParameter("@currentHp", characterData.CurrentHp),
-                new MySqlParameter("@currentMp", characterData.CurrentMp),
-                new MySqlParameter("@currentStamina", characterData.CurrentStamina),
-                new MySqlParameter("@currentFood", characterData.CurrentFood),
-                new MySqlParameter("@currentWater", characterData.CurrentWater),
-                new MySqlParameter("@equipWeaponSet", characterData.EquipWeaponSet),
-                new MySqlParameter("@statPoint", characterData.StatPoint),
-                new MySqlParameter("@skillPoint", characterData.SkillPoint),
-                new MySqlParameter("@gold", characterData.Gold),
-                new MySqlParameter("@currentMapName", characterData.CurrentMapName),
-                new MySqlParameter("@currentPositionX", characterData.CurrentPositionX),
-                new MySqlParameter("@currentPositionY", characterData.CurrentPositionY),
-                new MySqlParameter("@currentPositionZ", characterData.CurrentPositionZ),
-                new MySqlParameter("@currentRotationX", characterData.CurrentRotationX),
-                new MySqlParameter("@currentRotationY", characterData.CurrentRotationY),
-                new MySqlParameter("@currentRotationZ", characterData.CurrentRotationZ),
-                new MySqlParameter("@respawnMapName", characterData.RespawnMapName),
-                new MySqlParameter("@respawnPositionX", characterData.RespawnPositionX),
-                new MySqlParameter("@respawnPositionY", characterData.RespawnPositionY),
-                new MySqlParameter("@respawnPositionZ", characterData.RespawnPositionZ),
-                new MySqlParameter("@mountDataId", characterData.MountDataId),
-                new MySqlParameter("@iconDataId", characterData.IconDataId),
-                new MySqlParameter("@frameDataId", characterData.FrameDataId),
-                new MySqlParameter("@titleDataId", characterData.TitleDataId));
-            FillCharacterRelatesData(characterData);
-            this.InvokeInstanceDevExtMethods("CreateCharacter", userId, characterData);
+                new MySqlParameter("@dataId", character.DataId),
+                new MySqlParameter("@entityId", character.EntityId),
+                new MySqlParameter("@factionId", character.FactionId),
+                new MySqlParameter("@characterName", character.CharacterName),
+                new MySqlParameter("@level", character.Level),
+                new MySqlParameter("@exp", character.Exp),
+                new MySqlParameter("@currentHp", character.CurrentHp),
+                new MySqlParameter("@currentMp", character.CurrentMp),
+                new MySqlParameter("@currentStamina", character.CurrentStamina),
+                new MySqlParameter("@currentFood", character.CurrentFood),
+                new MySqlParameter("@currentWater", character.CurrentWater),
+                new MySqlParameter("@equipWeaponSet", character.EquipWeaponSet),
+                new MySqlParameter("@statPoint", character.StatPoint),
+                new MySqlParameter("@skillPoint", character.SkillPoint),
+                new MySqlParameter("@gold", character.Gold),
+                new MySqlParameter("@currentMapName", character.CurrentMapName),
+                new MySqlParameter("@currentPositionX", character.CurrentPositionX),
+                new MySqlParameter("@currentPositionY", character.CurrentPositionY),
+                new MySqlParameter("@currentPositionZ", character.CurrentPositionZ),
+                new MySqlParameter("@currentRotationX", character.CurrentRotationX),
+                new MySqlParameter("@currentRotationY", character.CurrentRotationY),
+                new MySqlParameter("@currentRotationZ", character.CurrentRotationZ),
+                new MySqlParameter("@respawnMapName", character.RespawnMapName),
+                new MySqlParameter("@respawnPositionX", character.RespawnPositionX),
+                new MySqlParameter("@respawnPositionY", character.RespawnPositionY),
+                new MySqlParameter("@respawnPositionZ", character.RespawnPositionZ),
+                new MySqlParameter("@mountDataId", character.MountDataId),
+                new MySqlParameter("@iconDataId", character.IconDataId),
+                new MySqlParameter("@frameDataId", character.FrameDataId),
+                new MySqlParameter("@titleDataId", character.TitleDataId));
+            FillCharacterRelatesData(character);
+            this.InvokeInstanceDevExtMethods("CreateCharacter", userId, character);
         }
 
         private bool ReadCharacter(MySqlDataReader reader, out PlayerCharacterData result)
