@@ -36,6 +36,7 @@ namespace MultiplayerARPG.MMO
             new GuildRoleData() { roleName = "Member 4", canInvite = false, canKick = false, canUseStorage = false },
             new GuildRoleData() { roleName = "Member 5", canInvite = false, canKick = false, canUseStorage = false },
         };
+        private int[] guildExpTree = new int[0];
 
         public BaseDatabase Database { get; private set; }
 
@@ -415,7 +416,7 @@ namespace MultiplayerARPG.MMO
             // Insert to database
             int guildId = Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
             // Cached the data
-            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, request.Roles.ToArray());
+            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, defaultGuildMemberRoles);
             cachedGuild[guildId] = guild;
             return Results.Ok(new GuildResp()
             {
@@ -671,9 +672,7 @@ namespace MultiplayerARPG.MMO
             {
                 return Results.NotFound();
             }
-            guild.level = request.Level;
-            guild.exp = request.Exp;
-            guild.skillPoint = request.SkillPoint;
+            guild.IncreaseGuildExp(guildExpTree, request.Exp);
             // Update to cache
             cachedGuild.TryAdd(guild.id, guild);
             // Update to database
