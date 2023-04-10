@@ -13,23 +13,23 @@ namespace MultiplayerARPG.MMO
         // In the future it may implements Redis
         // It's going to get some data from all tables but not every records
         // Just some records that players were requested
-        private ConcurrentHashSet<string> cachedUsernames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private ConcurrentHashSet<string> cachedEmails = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private ConcurrentHashSet<string> cachedCharacterNames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private ConcurrentHashSet<string> cachedGuildNames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private ConcurrentDictionary<string, string> cachedUserAccessToken = new ConcurrentDictionary<string, string>();
-        private ConcurrentDictionary<string, int> cachedUserGold = new ConcurrentDictionary<string, int>();
-        private ConcurrentDictionary<string, int> cachedUserCash = new ConcurrentDictionary<string, int>();
-        private ConcurrentDictionary<string, PlayerCharacterData> cachedUserCharacter = new ConcurrentDictionary<string, PlayerCharacterData>();
-        private ConcurrentDictionary<string, SocialCharacterData> cachedSocialCharacter = new ConcurrentDictionary<string, SocialCharacterData>();
-        private ConcurrentDictionary<string, ConcurrentDictionary<string, BuildingSaveData>> cachedBuilding = new ConcurrentDictionary<string, ConcurrentDictionary<string, BuildingSaveData>>();
-        private ConcurrentDictionary<int, PartyData> cachedParty = new ConcurrentDictionary<int, PartyData>();
-        private ConcurrentDictionary<int, GuildData> cachedGuild = new ConcurrentDictionary<int, GuildData>();
-        private ConcurrentDictionary<StorageId, List<CharacterItem>> cachedStorageItems = new ConcurrentDictionary<StorageId, List<CharacterItem>>();
-        private ConcurrentDictionary<StorageId, long> updatingStorages = new ConcurrentDictionary<StorageId, long>();
+        private ConcurrentHashSet<string> _cachedUsernames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentHashSet<string> _cachedEmails = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentHashSet<string> _cachedCharacterNames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentHashSet<string> _cachedGuildNames = new ConcurrentHashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private ConcurrentDictionary<string, string> _cachedUserAccessToken = new ConcurrentDictionary<string, string>();
+        private ConcurrentDictionary<string, int> _cachedUserGold = new ConcurrentDictionary<string, int>();
+        private ConcurrentDictionary<string, int> _cachedUserCash = new ConcurrentDictionary<string, int>();
+        private ConcurrentDictionary<string, PlayerCharacterData> _cachedUserCharacter = new ConcurrentDictionary<string, PlayerCharacterData>();
+        private ConcurrentDictionary<string, SocialCharacterData> _cachedSocialCharacter = new ConcurrentDictionary<string, SocialCharacterData>();
+        private ConcurrentDictionary<string, ConcurrentDictionary<string, BuildingSaveData>> _cachedBuilding = new ConcurrentDictionary<string, ConcurrentDictionary<string, BuildingSaveData>>();
+        private ConcurrentDictionary<int, PartyData> _cachedParty = new ConcurrentDictionary<int, PartyData>();
+        private ConcurrentDictionary<int, GuildData> _cachedGuild = new ConcurrentDictionary<int, GuildData>();
+        private ConcurrentDictionary<StorageId, List<CharacterItem>> _cachedStorageItems = new ConcurrentDictionary<StorageId, List<CharacterItem>>();
+        private ConcurrentDictionary<StorageId, long> _updatingStorages = new ConcurrentDictionary<StorageId, long>();
 
-        private bool disableCacheReading;
-        private GuildRoleData[] defaultGuildMemberRoles = new GuildRoleData[] {
+        private bool _disableCacheReading;
+        private GuildRoleData[] _defaultGuildMemberRoles = new GuildRoleData[] {
             new GuildRoleData() { roleName = "Master", canInvite = true, canKick = true, canUseStorage = true },
             new GuildRoleData() { roleName = "Member 1", canInvite = false, canKick = false, canUseStorage = false },
             new GuildRoleData() { roleName = "Member 2", canInvite = false, canKick = false, canUseStorage = false },
@@ -37,15 +37,21 @@ namespace MultiplayerARPG.MMO
             new GuildRoleData() { roleName = "Member 4", canInvite = false, canKick = false, canUseStorage = false },
             new GuildRoleData() { roleName = "Member 5", canInvite = false, canKick = false, canUseStorage = false },
         };
-        private int[] guildExpTree = new int[0];
-
-        public BaseDatabase Database { get; private set; } = null;
+        private int[] _guildExpTree = new int[0];
 
         private readonly ILogger<ApiController> _logger;
+        private readonly IConfiguration _config;
 
-        public ApiController(ILogger<ApiController> logger)
+        public IDatabase Database { get; private set; }
+
+        public ApiController(
+            ILogger<ApiController> logger,
+            IConfiguration config,
+            IDatabase database)
         {
             _logger = logger;
+            _config = config;
+            Database = database;
         }
         
         [HttpPost][Route($"/api/{DatabaseApiPath.ValidateUserLogin}")]
@@ -99,7 +105,7 @@ namespace MultiplayerARPG.MMO
             int gold = ReadGold(request.UserId);
             gold += request.ChangeAmount;
             // Cache the data, it will be used later
-            cachedUserGold[request.UserId] = gold;
+            _cachedUserGold[request.UserId] = gold;
             // Update data to database
             Database.UpdateGold(request.UserId, gold);
             return Ok(new GoldResp()
@@ -123,7 +129,7 @@ namespace MultiplayerARPG.MMO
             int cash = ReadCash(request.UserId);
             cash += request.ChangeAmount;
             // Cache the data, it will be used later
-            cachedUserCash[request.UserId] = cash;
+            _cachedUserCash[request.UserId] = cash;
             // Update data to database
             Database.UpdateCash(request.UserId, cash);
             return Ok(new CashResp()
@@ -136,7 +142,7 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> UpdateAccessToken(UpdateAccessTokenReq request)
         {
             // Store access token to the dictionary, it will be used to validate later
-            cachedUserAccessToken[request.UserId] = request.AccessToken;
+            _cachedUserAccessToken[request.UserId] = request.AccessToken;
             // Update data to database
             Database.UpdateAccessToken(request.UserId, request.AccessToken);
             return Ok();
@@ -146,7 +152,7 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> CreateUserLogin(CreateUserLoginReq request)
         {
             // Cache username, it will be used to validate later
-            cachedUsernames.Add(request.Username);
+            _cachedUsernames.Add(request.Username);
             // Insert new user login to database
             Database.CreateUserLogin(request.Username, request.Password, request.Email);
             return Ok();
@@ -205,7 +211,7 @@ namespace MultiplayerARPG.MMO
         {
             PlayerCharacterData character = request.CharacterData;
             // Cache the data, it will be used later
-            cachedUserCharacter[character.Id] = character;
+            _cachedUserCharacter[character.Id] = character;
             // Update data to database
             Database.UpdateCharacter(character);
             return Ok(new CharacterResp()
@@ -218,11 +224,11 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> DeleteCharacter(DeleteCharacterReq request)
         {
             // Remove data from cache
-            if (cachedUserCharacter.ContainsKey(request.CharacterId))
+            if (_cachedUserCharacter.ContainsKey(request.CharacterId))
             {
-                string characterName = cachedUserCharacter[request.CharacterId].CharacterName;
-                cachedCharacterNames.TryRemove(characterName);
-                cachedUserCharacter.TryRemove(request.CharacterId, out _);
+                string characterName = _cachedUserCharacter[request.CharacterId].CharacterName;
+                _cachedCharacterNames.TryRemove(characterName);
+                _cachedUserCharacter.TryRemove(request.CharacterId, out _);
             }
             // Delete data from database
             Database.DeleteCharacter(request.UserId, request.CharacterId);
@@ -275,12 +281,12 @@ namespace MultiplayerARPG.MMO
         {
             BuildingSaveData building = request.BuildingData;
             // Cache building data
-            if (cachedBuilding.ContainsKey(request.MapName))
+            if (_cachedBuilding.ContainsKey(request.MapName))
             {
-                if (cachedBuilding[request.MapName].ContainsKey(building.Id))
-                    cachedBuilding[request.MapName][building.Id] = building;
+                if (_cachedBuilding[request.MapName].ContainsKey(building.Id))
+                    _cachedBuilding[request.MapName][building.Id] = building;
                 else
-                    cachedBuilding[request.MapName].TryAdd(building.Id, building);
+                    _cachedBuilding[request.MapName].TryAdd(building.Id, building);
             }
             // Insert data to database
             Database.CreateBuilding(request.MapName, building);
@@ -295,12 +301,12 @@ namespace MultiplayerARPG.MMO
         {
             BuildingSaveData building = request.BuildingData;
             // Cache building data
-            if (cachedBuilding.ContainsKey(request.MapName))
+            if (_cachedBuilding.ContainsKey(request.MapName))
             {
-                if (cachedBuilding[request.MapName].ContainsKey(building.Id))
-                    cachedBuilding[request.MapName][building.Id] = building;
+                if (_cachedBuilding[request.MapName].ContainsKey(building.Id))
+                    _cachedBuilding[request.MapName][building.Id] = building;
                 else
-                    cachedBuilding[request.MapName].TryAdd(building.Id, building);
+                    _cachedBuilding[request.MapName].TryAdd(building.Id, building);
             }
             // Update data to database
             Database.UpdateBuilding(request.MapName, building);
@@ -314,8 +320,8 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> DeleteBuilding(DeleteBuildingReq request)
         {
             // Remove from cache
-            if (cachedBuilding.ContainsKey(request.MapName))
-                cachedBuilding[request.MapName].TryRemove(request.BuildingId, out _);
+            if (_cachedBuilding.ContainsKey(request.MapName))
+                _cachedBuilding[request.MapName].TryRemove(request.BuildingId, out _);
             // Remove from database
             Database.DeleteBuilding(request.MapName, request.BuildingId);
             return Ok();
@@ -337,7 +343,7 @@ namespace MultiplayerARPG.MMO
             int partyId = Database.CreateParty(request.ShareExp, request.ShareItem, request.LeaderCharacterId);
             // Cached the data
             PartyData party = new PartyData(partyId, request.ShareExp, request.ShareItem, request.LeaderCharacterId);
-            cachedParty[partyId] = party;
+            _cachedParty[partyId] = party;
             return Ok(new PartyResp()
             {
                 PartyData = party
@@ -354,7 +360,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             party.Setting(request.ShareExp, request.ShareItem);
-            cachedParty[request.PartyId] = party;
+            _cachedParty[request.PartyId] = party;
             // Update to database
             Database.UpdateParty(request.PartyId, request.ShareExp, request.ShareItem);
             return Ok(new PartyResp()
@@ -373,7 +379,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             party.SetLeader(request.LeaderCharacterId);
-            cachedParty[request.PartyId] = party;
+            _cachedParty[request.PartyId] = party;
             // Update to database
             Database.UpdatePartyLeader(request.PartyId, request.LeaderCharacterId);
             return Ok(new PartyResp()
@@ -400,10 +406,10 @@ namespace MultiplayerARPG.MMO
             // Update to cache
             SocialCharacterData character = request.SocialCharacterData;
             party.AddMember(character);
-            cachedParty[request.PartyId] = party;
+            _cachedParty[request.PartyId] = party;
             // Update to cached character
-            if (cachedUserCharacter.ContainsKey(character.id))
-                cachedUserCharacter[character.id].PartyId = request.PartyId;
+            if (_cachedUserCharacter.ContainsKey(character.id))
+                _cachedUserCharacter[character.id].PartyId = request.PartyId;
             // Update to database
             Database.UpdateCharacterParty(character.id, request.PartyId);
             return Ok(new PartyResp()
@@ -427,10 +433,10 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             party.RemoveMember(request.CharacterId);
-            cachedParty[character.PartyId] = party;
+            _cachedParty[character.PartyId] = party;
             // Update to cached character
-            if (cachedUserCharacter.ContainsKey(request.CharacterId))
-                cachedUserCharacter[request.CharacterId].PartyId = 0;
+            if (_cachedUserCharacter.ContainsKey(request.CharacterId))
+                _cachedUserCharacter[request.CharacterId].PartyId = 0;
             // Update to database
             Database.UpdateCharacterParty(request.CharacterId, 0);
             return Ok();
@@ -451,8 +457,8 @@ namespace MultiplayerARPG.MMO
             // Insert to database
             int guildId = Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
             // Cached the data
-            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, defaultGuildMemberRoles);
-            cachedGuild[guildId] = guild;
+            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, _defaultGuildMemberRoles);
+            _cachedGuild[guildId] = guild;
             return Ok(new GuildResp()
             {
                 GuildData = guild
@@ -469,7 +475,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.SetLeader(request.LeaderCharacterId);
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildLeader(request.GuildId, request.LeaderCharacterId);
             return Ok(new GuildResp()
@@ -488,7 +494,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.guildMessage = request.GuildMessage;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMessage(request.GuildId, request.GuildMessage);
             return Ok(new GuildResp()
@@ -507,7 +513,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.guildMessage2 = request.GuildMessage;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMessage2(request.GuildId, request.GuildMessage);
             return Ok(new GuildResp()
@@ -526,7 +532,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.score = request.Score;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildScore(request.GuildId, request.Score);
             return Ok(new GuildResp()
@@ -545,7 +551,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.options = request.Options;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildOptions(request.GuildId, request.Options);
             return Ok(new GuildResp()
@@ -564,7 +570,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.autoAcceptRequests = request.AutoAcceptRequests;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildAutoAcceptRequests(request.GuildId, request.AutoAcceptRequests);
             return Ok(new GuildResp()
@@ -583,7 +589,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.score = request.Rank;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildRank(request.GuildId, request.Rank);
             return Ok(new GuildResp()
@@ -602,7 +608,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.SetRole(request.GuildRole, request.GuildRoleData);
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to
             Database.UpdateGuildRole(request.GuildId, request.GuildRole, request.GuildRoleData);
             return Ok(new GuildResp()
@@ -621,7 +627,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.SetMemberRole(request.MemberCharacterId, request.GuildRole);
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMemberRole(request.MemberCharacterId, request.GuildRole);
             return Ok(new GuildResp()
@@ -634,11 +640,11 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> DeleteGuild(DeleteGuildReq request)
         {
             // Remove data from cache
-            if (cachedGuild.ContainsKey(request.GuildId))
+            if (_cachedGuild.ContainsKey(request.GuildId))
             {
-                string guildName = cachedGuild[request.GuildId].guildName;
-                cachedGuildNames.TryRemove(guildName);
-                cachedGuild.TryRemove(request.GuildId, out _);
+                string guildName = _cachedGuild[request.GuildId].guildName;
+                _cachedGuildNames.TryRemove(guildName);
+                _cachedGuild.TryRemove(request.GuildId, out _);
             }
             // Remove data from database
             Database.DeleteGuild(request.GuildId);
@@ -656,10 +662,10 @@ namespace MultiplayerARPG.MMO
             // Update to cache
             SocialCharacterData character = request.SocialCharacterData;
             guild.AddMember(character, request.GuildRole);
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to cached character
-            if (cachedUserCharacter.ContainsKey(character.id))
-                cachedUserCharacter[character.id].GuildId = request.GuildId;
+            if (_cachedUserCharacter.ContainsKey(character.id))
+                _cachedUserCharacter[character.id].GuildId = request.GuildId;
             // Update to database
             Database.UpdateCharacterGuild(character.id, request.GuildId, request.GuildRole);
             return Ok(new GuildResp()
@@ -683,12 +689,12 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.RemoveMember(request.CharacterId);
-            cachedGuild[character.GuildId] = guild;
+            _cachedGuild[character.GuildId] = guild;
             // Update to cached character
-            if (cachedUserCharacter.ContainsKey(request.CharacterId))
+            if (_cachedUserCharacter.ContainsKey(request.CharacterId))
             {
-                cachedUserCharacter[request.CharacterId].GuildId = 0;
-                cachedUserCharacter[request.CharacterId].GuildRole = 0;
+                _cachedUserCharacter[request.CharacterId].GuildId = 0;
+                _cachedUserCharacter[request.CharacterId].GuildRole = 0;
             }
             // Update to database
             Database.UpdateCharacterGuild(request.CharacterId, 0, 0);
@@ -722,9 +728,9 @@ namespace MultiplayerARPG.MMO
             {
                 return StatusCode(404);
             }
-            guild.IncreaseGuildExp(guildExpTree, request.Exp);
+            guild.IncreaseGuildExp(_guildExpTree, request.Exp);
             // Update to cache
-            cachedGuild.TryAdd(guild.id, guild);
+            _cachedGuild.TryAdd(guild.id, guild);
             // Update to database
             Database.UpdateGuildLevel(request.GuildId, guild.level, guild.exp, guild.skillPoint);
             return Ok(new GuildResp()
@@ -744,7 +750,7 @@ namespace MultiplayerARPG.MMO
             }
             guild.AddSkillLevel(request.SkillId);
             // Update to cache
-            cachedGuild[guild.id] = guild;
+            _cachedGuild[guild.id] = guild;
             // Update to database
             Database.UpdateGuildSkillLevel(request.GuildId, request.SkillId, guild.GetSkillLevel(request.SkillId), guild.skillPoint);
             return Ok(new GuildResp()
@@ -777,7 +783,7 @@ namespace MultiplayerARPG.MMO
             }
             // Update to cache
             guild.gold += request.ChangeAmount;
-            cachedGuild[request.GuildId] = guild;
+            _cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildGold(request.GuildId, guild.gold);
             return Ok(new GuildGoldResp()
@@ -793,13 +799,13 @@ namespace MultiplayerARPG.MMO
             if (request.ReadForUpdate)
             {
                 long time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-                if (updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime < 500)
+                if (_updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime < 500)
                 {
                     // Not allow to update yet
                     return StatusCode(400);
                 }
-                updatingStorages.TryRemove(storageId, out _);
-                updatingStorages.TryAdd(storageId, time);
+                _updatingStorages.TryRemove(storageId, out _);
+                _updatingStorages.TryAdd(storageId, time);
             }
             return Ok(new ReadStorageItemsResp()
             {
@@ -812,7 +818,7 @@ namespace MultiplayerARPG.MMO
         {
             StorageId storageId = new StorageId(request.StorageType, request.StorageOwnerId);
             long time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            if (updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime >= 500)
+            if (_updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime >= 500)
             {
                 // Timeout
                 return StatusCode(400);
@@ -821,15 +827,15 @@ namespace MultiplayerARPG.MMO
             {
                 PlayerCharacterData character = request.CharacterData;
                 // Cache the data, it will be used later
-                cachedUserCharacter[character.Id] = character;
+                _cachedUserCharacter[character.Id] = character;
                 // Update data to database
                 Database.UpdateCharacter(character);
             }
             // Cache the data, it will be used later
-            cachedStorageItems[storageId] = request.StorageItems;
+            _cachedStorageItems[storageId] = request.StorageItems;
             // Update data to database
             Database.UpdateStorageItems(request.StorageType, request.StorageOwnerId, request.StorageItems);
-            updatingStorages.TryRemove(storageId, out _);
+            _updatingStorages.TryRemove(storageId, out _);
             return Ok();
         }
         
@@ -1024,10 +1030,10 @@ namespace MultiplayerARPG.MMO
 
         protected bool ValidateAccessToken(string userId, string accessToken)
         {
-            if (!disableCacheReading && cachedUserAccessToken.ContainsKey(userId))
+            if (!_disableCacheReading && _cachedUserAccessToken.ContainsKey(userId))
             {
                 // Already cached access token, so validate access token from cache
-                return accessToken.Equals(cachedUserAccessToken[userId]);
+                return accessToken.Equals(_cachedUserAccessToken[userId]);
             }
             else
             {
@@ -1035,7 +1041,7 @@ namespace MultiplayerARPG.MMO
                 if (Database.ValidateAccessToken(userId, accessToken))
                 {
                     // Pass, store access token to the dictionary
-                    cachedUserAccessToken[userId] = accessToken;
+                    _cachedUserAccessToken[userId] = accessToken;
                     return true;
                 }
             }
@@ -1045,7 +1051,7 @@ namespace MultiplayerARPG.MMO
         protected long FindUsername(string username)
         {
             long foundAmount;
-            if (!disableCacheReading && cachedUsernames.Contains(username))
+            if (!_disableCacheReading && _cachedUsernames.Contains(username))
             {
                 // Already cached username, so validate username from cache
                 foundAmount = 1;
@@ -1056,7 +1062,7 @@ namespace MultiplayerARPG.MMO
                 foundAmount = Database.FindUsername(username);
                 // Cache username, it will be used to validate later
                 if (foundAmount > 0)
-                    cachedUsernames.Add(username);
+                    _cachedUsernames.Add(username);
             }
             return foundAmount;
         }
@@ -1064,7 +1070,7 @@ namespace MultiplayerARPG.MMO
         protected long FindCharacterName(string characterName)
         {
             long foundAmount;
-            if (!disableCacheReading && cachedCharacterNames.Contains(characterName))
+            if (!_disableCacheReading && _cachedCharacterNames.Contains(characterName))
             {
                 // Already cached character name, so validate character name from cache
                 foundAmount = 1;
@@ -1075,7 +1081,7 @@ namespace MultiplayerARPG.MMO
                 foundAmount = Database.FindCharacterName(characterName);
                 // Cache character name, it will be used to validate later
                 if (foundAmount > 0)
-                    cachedCharacterNames.Add(characterName);
+                    _cachedCharacterNames.Add(characterName);
             }
             return foundAmount;
         }
@@ -1083,7 +1089,7 @@ namespace MultiplayerARPG.MMO
         protected long FindGuildName(string guildName)
         {
             long foundAmount;
-            if (!disableCacheReading && cachedGuildNames.Contains(guildName))
+            if (!_disableCacheReading && _cachedGuildNames.Contains(guildName))
             {
                 // Already cached username, so validate username from cache
                 foundAmount = 1;
@@ -1094,7 +1100,7 @@ namespace MultiplayerARPG.MMO
                 foundAmount = Database.FindGuildName(guildName);
                 // Cache guild name, it will be used to validate later
                 if (foundAmount > 0)
-                    cachedGuildNames.Add(guildName);
+                    _cachedGuildNames.Add(guildName);
             }
             return foundAmount;
         }
@@ -1102,7 +1108,7 @@ namespace MultiplayerARPG.MMO
         protected long FindEmail(string email)
         {
             long foundAmount;
-            if (!disableCacheReading && cachedEmails.Contains(email))
+            if (!_disableCacheReading && _cachedEmails.Contains(email))
             {
                 // Already cached username, so validate username from cache
                 foundAmount = 1;
@@ -1113,7 +1119,7 @@ namespace MultiplayerARPG.MMO
                 foundAmount = Database.FindEmail(email);
                 // Cache username, it will be used to validate later
                 if (foundAmount > 0)
-                    cachedEmails.Add(email);
+                    _cachedEmails.Add(email);
             }
             return foundAmount;
         }
@@ -1121,21 +1127,21 @@ namespace MultiplayerARPG.MMO
         protected List<BuildingSaveData> ReadBuildings(string mapName)
         {
             List<BuildingSaveData> buildings = new List<BuildingSaveData>();
-            if (!disableCacheReading && cachedBuilding.ContainsKey(mapName))
+            if (!_disableCacheReading && _cachedBuilding.ContainsKey(mapName))
             {
                 // Get buildings from cache
-                buildings.AddRange(cachedBuilding[mapName].Values);
+                buildings.AddRange(_cachedBuilding[mapName].Values);
             }
             else
             {
                 // Read buildings from database
                 buildings.AddRange(Database.ReadBuildings(mapName));
                 // Store buildings to cache
-                if (cachedBuilding.TryAdd(mapName, new ConcurrentDictionary<string, BuildingSaveData>()))
+                if (_cachedBuilding.TryAdd(mapName, new ConcurrentDictionary<string, BuildingSaveData>()))
                 {
                     foreach (BuildingSaveData building in buildings)
                     {
-                        cachedBuilding[mapName].TryAdd(building.Id, building);
+                        _cachedBuilding[mapName].TryAdd(building.Id, building);
                     }
                 }
             }
@@ -1144,37 +1150,37 @@ namespace MultiplayerARPG.MMO
 
         protected int ReadGold(string userId)
         {
-            if (disableCacheReading || !cachedUserGold.TryGetValue(userId, out int gold))
+            if (_disableCacheReading || !_cachedUserGold.TryGetValue(userId, out int gold))
             {
                 // Doesn't cached yet, so get data from database and cache it
                 gold = Database.GetGold(userId);
-                cachedUserGold[userId] = gold;
+                _cachedUserGold[userId] = gold;
             }
             return gold;
         }
 
         protected int ReadCash(string userId)
         {
-            if (disableCacheReading || !cachedUserCash.TryGetValue(userId, out int cash))
+            if (_disableCacheReading || !_cachedUserCash.TryGetValue(userId, out int cash))
             {
                 // Doesn't cached yet, so get data from database and cache it
                 cash = Database.GetCash(userId);
-                cachedUserCash[userId] = cash;
+                _cachedUserCash[userId] = cash;
             }
             return cash;
         }
 
         protected PlayerCharacterData ReadCharacter(string id)
         {
-            if (disableCacheReading || !cachedUserCharacter.TryGetValue(id, out PlayerCharacterData character))
+            if (_disableCacheReading || !_cachedUserCharacter.TryGetValue(id, out PlayerCharacterData character))
             {
                 // Doesn't cached yet, so get data from database
                 character = Database.ReadCharacter(id);
                 // Cache the data, it will be used later
                 if (character != null)
                 {
-                    cachedUserCharacter[id] = character;
-                    cachedCharacterNames.Add(character.CharacterName);
+                    _cachedUserCharacter[id] = character;
+                    _cachedCharacterNames.Add(character.CharacterName);
                 }
             }
             return character;
@@ -1182,15 +1188,15 @@ namespace MultiplayerARPG.MMO
 
         protected PlayerCharacterData ReadCharacterWithUserIdValidation(string id, string userId)
         {
-            if (disableCacheReading || !cachedUserCharacter.TryGetValue(id, out PlayerCharacterData character))
+            if (_disableCacheReading || !_cachedUserCharacter.TryGetValue(id, out PlayerCharacterData character))
             {
                 // Doesn't cached yet, so get data from database
                 character = Database.ReadCharacter(id);
                 // Cache the data, it will be used later
                 if (character != null)
                 {
-                    cachedUserCharacter[id] = character;
-                    cachedCharacterNames.Add(character.CharacterName);
+                    _cachedUserCharacter[id] = character;
+                    _cachedCharacterNames.Add(character.CharacterName);
                 }
             }
             if (character != null && character.UserId != userId)
@@ -1200,26 +1206,26 @@ namespace MultiplayerARPG.MMO
 
         protected SocialCharacterData ReadSocialCharacter(string id)
         {
-            if (disableCacheReading || !cachedSocialCharacter.TryGetValue(id, out SocialCharacterData character))
+            if (_disableCacheReading || !_cachedSocialCharacter.TryGetValue(id, out SocialCharacterData character))
             {
                 // Doesn't cached yet, so get data from database
                 character = SocialCharacterData.Create(Database.ReadCharacter(id, false, false, false, false, false, false, false, false, false, false));
                 // Cache the data
-                cachedSocialCharacter[id] = character;
+                _cachedSocialCharacter[id] = character;
             }
             return character;
         }
 
         protected PartyData ReadParty(int id)
         {
-            if (disableCacheReading || !cachedParty.TryGetValue(id, out PartyData party))
+            if (_disableCacheReading || !_cachedParty.TryGetValue(id, out PartyData party))
             {
                 // Doesn't cached yet, so get data from database
                 party = Database.ReadParty(id);
                 // Cache the data
                 if (party != null)
                 {
-                    cachedParty[id] = party;
+                    _cachedParty[id] = party;
                     CacheSocialCharacters(party.GetMembers());
                 }
             }
@@ -1228,15 +1234,15 @@ namespace MultiplayerARPG.MMO
 
         protected GuildData ReadGuild(int id)
         {
-            if (disableCacheReading || !cachedGuild.TryGetValue(id, out GuildData guild))
+            if (_disableCacheReading || !_cachedGuild.TryGetValue(id, out GuildData guild))
             {
                 // Doesn't cached yet, so get data from database
-                guild = Database.ReadGuild(id, defaultGuildMemberRoles);
+                guild = Database.ReadGuild(id, _defaultGuildMemberRoles);
                 // Cache the data
                 if (guild != null)
                 {
-                    cachedGuild[id] = guild;
-                    cachedGuildNames.Add(guild.guildName);
+                    _cachedGuild[id] = guild;
+                    _cachedGuildNames.Add(guild.guildName);
                     CacheSocialCharacters(guild.GetMembers());
                 }
             }
@@ -1245,13 +1251,13 @@ namespace MultiplayerARPG.MMO
 
         protected List<CharacterItem> ReadStorageItems(StorageId storageId)
         {
-            if (disableCacheReading || !cachedStorageItems.TryGetValue(storageId, out List<CharacterItem> storageItems))
+            if (_disableCacheReading || !_cachedStorageItems.TryGetValue(storageId, out List<CharacterItem> storageItems))
             {
                 // Doesn't cached yet, so get data from database
                 storageItems = Database.ReadStorageItems(storageId.storageType, storageId.storageOwnerId);
                 // Cache the data, it will be used later
                 if (storageItems != null)
-                    cachedStorageItems[storageId] = storageItems;
+                    _cachedStorageItems[storageId] = storageItems;
             }
             return storageItems;
         }
@@ -1260,7 +1266,7 @@ namespace MultiplayerARPG.MMO
         {
             foreach (SocialCharacterData socialCharacter in socialCharacters)
             {
-                cachedSocialCharacter[socialCharacter.id] = socialCharacter;
+                _cachedSocialCharacter[socialCharacter.id] = socialCharacter;
             }
         }
     }

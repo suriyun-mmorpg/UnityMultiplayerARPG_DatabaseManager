@@ -1,9 +1,10 @@
+using MultiplayerARPG.MMO;
 using Newtonsoft.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddSingleton<IDatabase, MySQLDatabase>();
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
     // Use the default property (Pascal) casing
