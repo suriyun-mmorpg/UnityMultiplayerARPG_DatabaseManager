@@ -790,7 +790,7 @@ namespace MultiplayerARPG.MMO
                 // Timeout
                 return StatusCode(400);
             }
-            if (request.UpdateCharacterData)
+            if (request.CharacterData != null)
             {
                 PlayerCharacterData character = request.CharacterData;
                 // Cache the data, it will be used later
