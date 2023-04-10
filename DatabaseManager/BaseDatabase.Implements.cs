@@ -2,26 +2,31 @@
 {
     public partial class BaseDatabase
     {
-        private ILogger logger;
+        private ILogger _logger;
+
+        public BaseDatabase(ILogger logger)
+        {
+            _logger = logger;
+        }
 
         public void LogInformation(string tag, string msg)
         {
-            logger.LogInformation(msg);
+            _logger.LogInformation(msg);
         }
 
         public void LogWarning(string tag, string msg)
         {
-            logger.LogWarning(msg);
+            _logger.LogWarning(msg);
         }
 
         public void LogError(string tag, string msg)
         {
-            logger.LogError(msg);
+            _logger.LogError(msg);
         }
 
         public void LogException(string tag, System.Exception ex)
         {
-            logger.LogCritical(ex, string.Empty);
+            _logger.LogCritical(ex, string.Empty);
         }
     }
 }
