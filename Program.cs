@@ -3,8 +3,18 @@ using Newtonsoft.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (!int.TryParse(builder.Configuration["DatabaseType"], out int databaseType))
+    databaseType = 0;
 // Add services to the container.
-builder.Services.AddSingleton<IDatabase, MySQLDatabase>();
+switch (databaseType)
+{
+    case 1:
+        builder.Services.AddSingleton<IDatabase, SQLiteDatabase>();
+        break;
+    default:
+        builder.Services.AddSingleton<IDatabase, MySQLDatabase>();
+        break;
+}
 builder.Services.AddSingleton<IDatabaseCache, LocalDatabaseCache>();
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
