@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<IDatabase, MySQLDatabase>();
+builder.Services.AddSingleton<IDatabaseCache, LocalDatabaseCache>();
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
     // Use the default property (Pascal) casing
