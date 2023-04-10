@@ -6,7 +6,6 @@
         {
             _logger = logger;
             Initialize();
-            _logger.LogInformation("created");
         }
     }
 }
