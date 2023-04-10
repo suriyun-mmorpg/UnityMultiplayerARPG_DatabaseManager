@@ -800,9 +800,9 @@ namespace MultiplayerARPG.MMO
             }
             // Cache the data, it will be used later
             await _databaseCache.SetStorageItems(storageId, request.StorageItems);
+            await _databaseCache.RemoveUpdatingStorage(storageId);
             // Update data to database
             Database.UpdateStorageItems(request.StorageType, request.StorageOwnerId, request.StorageItems);
-            await _databaseCache.RemoveUpdatingStorage(storageId);
             return Ok();
         }
 
