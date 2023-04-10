@@ -27,4 +27,8 @@
     <PackageReference Include="ZString" Version="2.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="config\" />
+  </ItemGroup>
+
 </Project>
