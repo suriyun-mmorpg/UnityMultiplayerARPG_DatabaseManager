@@ -2,9 +2,11 @@
 {
     public partial class MySQLDatabase
     {
-        public MySQLDatabase(ILogger logger) : base(logger)
+        public MySQLDatabase(ILogger<MySQLDatabase> logger)
         {
+            _logger = logger;
             Initialize();
+            _logger.LogInformation("created");
         }
     }
 }

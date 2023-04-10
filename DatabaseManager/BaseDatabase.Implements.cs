@@ -2,12 +2,7 @@
 {
     public partial class BaseDatabase
     {
-        private ILogger _logger;
-
-        public BaseDatabase(ILogger logger)
-        {
-            _logger = logger;
-        }
+        protected ILogger _logger;
 
         public void LogInformation(string tag, string msg)
         {
@@ -24,7 +19,7 @@
             _logger.LogError(msg);
         }
 
-        public void LogException(string tag, System.Exception ex)
+        public void LogException(string tag, Exception ex)
         {
             _logger.LogCritical(ex, string.Empty);
         }
