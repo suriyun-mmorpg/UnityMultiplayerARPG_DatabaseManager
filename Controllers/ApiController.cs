@@ -1,12 +1,13 @@
 ﻿using ConcurrentCollections;
 using Cysharp.Threading.Tasks;
-using System;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace MultiplayerARPG.MMO
 {
-    public partial class ApiController
+    [ApiController]
+    public partial class ApiController : ControllerBase
     {
         // TODO: I'm going to make in-memory database without Redis for now
         // In the future it may implements Redis
@@ -38,55 +39,62 @@ namespace MultiplayerARPG.MMO
         };
         private int[] guildExpTree = new int[0];
 
-        public BaseDatabase Database { get; private set; }
+        public BaseDatabase Database { get; private set; } = null;
 
-        public ApiController(BaseDatabase database)
+        private readonly ILogger<ApiController> _logger;
+
+        public ApiController(ILogger<ApiController> logger)
         {
-            Database = database;
+            _logger = logger;
         }
-
-        protected async UniTask<IResult> ValidateUserLogin(ValidateUserLoginReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateUserLogin}")]
+        public async UniTask<IActionResult> ValidateUserLogin(ValidateUserLoginReq request)
         {
             string userId = Database.ValidateUserLogin(request.Username, request.Password);
             if (string.IsNullOrEmpty(userId))
             {
-                return Results.Ok(new ValidateUserLoginResp());
+                return StatusCode(401);
             }
-            return Results.Ok(new ValidateUserLoginResp()
+            return Ok(new ValidateUserLoginResp()
             {
                 UserId = userId,
             });
         }
-
-        protected async UniTask<IResult> ValidateAccessToken(ValidateAccessTokenReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateAccessToken}")]
+        public async UniTask<IActionResult> ValidateAccessToken(ValidateAccessTokenReq request)
         {
-            return Results.Ok(new ValidateAccessTokenResp()
+            return Ok(new ValidateAccessTokenResp()
             {
                 IsPass = ValidateAccessToken(request.UserId, request.AccessToken),
             });
         }
-
-        protected async UniTask<IResult> GetUserLevel(GetUserLevelReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserLevel}")]
+        public async UniTask<IActionResult> GetUserLevel(GetUserLevelReq request)
         {
             if (!Database.ValidateAccessToken(request.UserId, request.AccessToken))
             {
-                return Results.Unauthorized();
+                return StatusCode(403);
             }
-            return Results.Ok(new GetUserLevelResp()
+            return Ok(new GetUserLevelResp()
             {
                 UserLevel = Database.GetUserLevel(request.UserId),
             });
         }
-
-        protected async UniTask<IResult> GetGold(GetGoldReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetGold}")]
+        public async UniTask<IActionResult> GetGold(GetGoldReq request)
         {
-            return Results.Ok(new GoldResp()
+            return Ok(new GoldResp()
             {
                 Gold = ReadGold(request.UserId)
             });
         }
-
-        protected async UniTask<IResult> ChangeGold(ChangeGoldReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeGold}")]
+        public async UniTask<IActionResult> ChangeGold(ChangeGoldReq request)
         {
             int gold = ReadGold(request.UserId);
             gold += request.ChangeAmount;
@@ -94,21 +102,23 @@ namespace MultiplayerARPG.MMO
             cachedUserGold[request.UserId] = gold;
             // Update data to database
             Database.UpdateGold(request.UserId, gold);
-            return Results.Ok(new GoldResp()
+            return Ok(new GoldResp()
             {
                 Gold = gold
             });
         }
-
-        protected async UniTask<IResult> GetCash(GetCashReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetCash}")]
+        public async UniTask<IActionResult> GetCash(GetCashReq request)
         {
-            return Results.Ok(new CashResp()
+            return Ok(new CashResp()
             {
                 Cash = ReadCash(request.UserId)
             });
         }
-
-        protected async UniTask<IResult> ChangeCash(ChangeCashReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeCash}")]
+        public async UniTask<IActionResult> ChangeCash(ChangeCashReq request)
         {
             int cash = ReadCash(request.UserId);
             cash += request.ChangeAmount;
@@ -116,58 +126,64 @@ namespace MultiplayerARPG.MMO
             cachedUserCash[request.UserId] = cash;
             // Update data to database
             Database.UpdateCash(request.UserId, cash);
-            return Results.Ok(new CashResp()
+            return Ok(new CashResp()
             {
                 Cash = cash
             });
         }
-
-        protected async UniTask<IResult> UpdateAccessToken(UpdateAccessTokenReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateAccessToken}")]
+        public async UniTask<IActionResult> UpdateAccessToken(UpdateAccessTokenReq request)
         {
             // Store access token to the dictionary, it will be used to validate later
             cachedUserAccessToken[request.UserId] = request.AccessToken;
             // Update data to database
             Database.UpdateAccessToken(request.UserId, request.AccessToken);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> CreateUserLogin(CreateUserLoginReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateUserLogin}")]
+        public async UniTask<IActionResult> CreateUserLogin(CreateUserLoginReq request)
         {
             // Cache username, it will be used to validate later
             cachedUsernames.Add(request.Username);
             // Insert new user login to database
             Database.CreateUserLogin(request.Username, request.Password, request.Email);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> FindUsername(FindUsernameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.FindUsername}")]
+        public async UniTask<IActionResult> FindUsername(FindUsernameReq request)
         {
-            return Results.Ok(new FindUsernameResp()
+            return Ok(new FindUsernameResp()
             {
                 FoundAmount = FindUsername(request.Username),
             });
         }
-
-        protected async UniTask<IResult> CreateCharacter(CreateCharacterReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateCharacter}")]
+        public async UniTask<IActionResult> CreateCharacter(CreateCharacterReq request)
         {
             PlayerCharacterData character = request.CharacterData;
             // Insert new character to database
             Database.CreateCharacter(request.UserId, character);
-            return Results.Ok(new CharacterResp()
+            return Ok(new CharacterResp()
             {
                 CharacterData = character
             });
         }
-
-        protected async UniTask<IResult> ReadCharacter(ReadCharacterReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadCharacter}")]
+        public async UniTask<IActionResult> ReadCharacter(ReadCharacterReq request)
         {
-            return Results.Ok(new CharacterResp()
+            return Ok(new CharacterResp()
             {
                 CharacterData = ReadCharacterWithUserIdValidation(request.CharacterId, request.UserId),
             });
         }
-
-        protected async UniTask<IResult> ReadCharacters(ReadCharactersReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadCharacters}")]
+        public async UniTask<IActionResult> ReadCharacters(ReadCharactersReq request)
         {
             List<PlayerCharacterData> characters = Database.ReadCharacters(request.UserId);
             // Read and cache character (or load from cache)
@@ -178,26 +194,28 @@ namespace MultiplayerARPG.MMO
                 characters[i] = ReadCharacter(characters[i].Id);
                 characters[i].LastUpdate = lastUpdate;
             }
-            return Results.Ok(new CharactersResp()
+            return Ok(new CharactersResp()
             {
                 List = characters
             });
         }
-
-        protected async UniTask<IResult> UpdateCharacter(UpdateCharacterReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacter}")]
+        public async UniTask<IActionResult> UpdateCharacter(UpdateCharacterReq request)
         {
             PlayerCharacterData character = request.CharacterData;
             // Cache the data, it will be used later
             cachedUserCharacter[character.Id] = character;
             // Update data to database
             Database.UpdateCharacter(character);
-            return Results.Ok(new CharacterResp()
+            return Ok(new CharacterResp()
             {
                 CharacterData = character
             });
         }
-
-        protected async UniTask<IResult> DeleteCharacter(DeleteCharacterReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteCharacter}")]
+        public async UniTask<IActionResult> DeleteCharacter(DeleteCharacterReq request)
         {
             // Remove data from cache
             if (cachedUserCharacter.ContainsKey(request.CharacterId))
@@ -208,46 +226,52 @@ namespace MultiplayerARPG.MMO
             }
             // Delete data from database
             Database.DeleteCharacter(request.UserId, request.CharacterId);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> FindCharacterName(FindCharacterNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.FindCharacterName}")]
+        public async UniTask<IActionResult> FindCharacterName(FindCharacterNameReq request)
         {
-            return Results.Ok(new FindCharacterNameResp()
+            return Ok(new FindCharacterNameResp()
             {
                 FoundAmount = FindCharacterName(request.CharacterName),
             });
         }
-
-        protected async UniTask<IResult> FindCharacters(FindCharacterNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.FindCharacters}")]
+        public async UniTask<IActionResult> FindCharacters(FindCharacterNameReq request)
         {
-            return Results.Ok(new SocialCharactersResp()
+            return Ok(new SocialCharactersResp()
             {
                 List = Database.FindCharacters(request.FinderId, request.CharacterName, request.Skip, request.Limit)
             });
         }
-
-        protected async UniTask<IResult> CreateFriend(CreateFriendReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateFriend}")]
+        public async UniTask<IActionResult> CreateFriend(CreateFriendReq request)
         {
             Database.CreateFriend(request.Character1Id, request.Character2Id, request.State);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> DeleteFriend(DeleteFriendReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteFriend}")]
+        public async UniTask<IActionResult> DeleteFriend(DeleteFriendReq request)
         {
             Database.DeleteFriend(request.Character1Id, request.Character2Id);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> ReadFriends(ReadFriendsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadFriends}")]
+        public async UniTask<IActionResult> ReadFriends(ReadFriendsReq request)
         {
-            return Results.Ok(new SocialCharactersResp()
+            return Ok(new SocialCharactersResp()
             {
                 List = Database.ReadFriends(request.CharacterId, request.ReadById2, request.State, request.Skip, request.Limit),
             });
         }
-
-        protected async UniTask<IResult> CreateBuilding(CreateBuildingReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateBuilding}")]
+        public async UniTask<IActionResult> CreateBuilding(CreateBuildingReq request)
         {
             BuildingSaveData building = request.BuildingData;
             // Cache building data
@@ -260,13 +284,14 @@ namespace MultiplayerARPG.MMO
             }
             // Insert data to database
             Database.CreateBuilding(request.MapName, building);
-            return Results.Ok(new BuildingResp()
+            return Ok(new BuildingResp()
             {
                 BuildingData = request.BuildingData
             });
         }
-
-        protected async UniTask<IResult> UpdateBuilding(UpdateBuildingReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateBuilding}")]
+        public async UniTask<IActionResult> UpdateBuilding(UpdateBuildingReq request)
         {
             BuildingSaveData building = request.BuildingData;
             // Cache building data
@@ -279,91 +304,98 @@ namespace MultiplayerARPG.MMO
             }
             // Update data to database
             Database.UpdateBuilding(request.MapName, building);
-            return Results.Ok(new BuildingResp()
+            return Ok(new BuildingResp()
             {
                 BuildingData = request.BuildingData
             });
         }
-
-        protected async UniTask<IResult> DeleteBuilding(DeleteBuildingReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteBuilding}")]
+        public async UniTask<IActionResult> DeleteBuilding(DeleteBuildingReq request)
         {
             // Remove from cache
             if (cachedBuilding.ContainsKey(request.MapName))
                 cachedBuilding[request.MapName].TryRemove(request.BuildingId, out _);
             // Remove from database
             Database.DeleteBuilding(request.MapName, request.BuildingId);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> ReadBuildings(ReadBuildingsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadBuildings}")]
+        public async UniTask<IActionResult> ReadBuildings(ReadBuildingsReq request)
         {
-            return Results.Ok(new BuildingsResp()
+            return Ok(new BuildingsResp()
             {
                 List = ReadBuildings(request.MapName),
             });
         }
-
-        protected async UniTask<IResult> CreateParty(CreatePartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateParty}")]
+        public async UniTask<IActionResult> CreateParty(CreatePartyReq request)
         {
             // Insert to database
             int partyId = Database.CreateParty(request.ShareExp, request.ShareItem, request.LeaderCharacterId);
             // Cached the data
             PartyData party = new PartyData(partyId, request.ShareExp, request.ShareItem, request.LeaderCharacterId);
             cachedParty[partyId] = party;
-            return Results.Ok(new PartyResp()
+            return Ok(new PartyResp()
             {
                 PartyData = party
             });
         }
-
-        protected async UniTask<IResult> UpdateParty(UpdatePartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateParty}")]
+        public async UniTask<IActionResult> UpdateParty(UpdatePartyReq request)
         {
             PartyData party = ReadParty(request.PartyId);
             if (party == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             party.Setting(request.ShareExp, request.ShareItem);
             cachedParty[request.PartyId] = party;
             // Update to database
             Database.UpdateParty(request.PartyId, request.ShareExp, request.ShareItem);
-            return Results.Ok(new PartyResp()
+            return Ok(new PartyResp()
             {
                 PartyData = party
             });
         }
-
-        protected async UniTask<IResult> UpdatePartyLeader(UpdatePartyLeaderReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdatePartyLeader}")]
+        public async UniTask<IActionResult> UpdatePartyLeader(UpdatePartyLeaderReq request)
         {
             PartyData party = ReadParty(request.PartyId);
             if (party == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             party.SetLeader(request.LeaderCharacterId);
             cachedParty[request.PartyId] = party;
             // Update to database
             Database.UpdatePartyLeader(request.PartyId, request.LeaderCharacterId);
-            return Results.Ok(new PartyResp()
+            return Ok(new PartyResp()
             {
                 PartyData = party
             });
         }
-
-        protected async UniTask<IResult> DeleteParty(DeletePartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteParty}")]
+        public async UniTask<IActionResult> DeleteParty(DeletePartyReq request)
         {
             Database.DeleteParty(request.PartyId);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> UpdateCharacterParty(UpdateCharacterPartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacterParty}")]
+        public async UniTask<IActionResult> UpdateCharacterParty(UpdateCharacterPartyReq request)
         {
             PartyData party = ReadParty(request.PartyId);
             if (party == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             SocialCharacterData character = request.SocialCharacterData;
@@ -374,23 +406,24 @@ namespace MultiplayerARPG.MMO
                 cachedUserCharacter[character.id].PartyId = request.PartyId;
             // Update to database
             Database.UpdateCharacterParty(character.id, request.PartyId);
-            return Results.Ok(new PartyResp()
+            return Ok(new PartyResp()
             {
                 PartyData = party
             });
         }
-
-        protected async UniTask<IResult> ClearCharacterParty(ClearCharacterPartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ClearCharacterParty}")]
+        public async UniTask<IActionResult> ClearCharacterParty(ClearCharacterPartyReq request)
         {
             PlayerCharacterData character = ReadCharacter(request.CharacterId);
             if (character == null)
             {
-                return Results.Ok();
+                return Ok();
             }
             PartyData party = ReadParty(character.PartyId);
             if (party == null)
             {
-                return Results.Ok();
+                return Ok();
             }
             // Update to cache
             party.RemoveMember(request.CharacterId);
@@ -400,193 +433,205 @@ namespace MultiplayerARPG.MMO
                 cachedUserCharacter[request.CharacterId].PartyId = 0;
             // Update to database
             Database.UpdateCharacterParty(request.CharacterId, 0);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> ReadParty(ReadPartyReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadParty}")]
+        public async UniTask<IActionResult> ReadParty(ReadPartyReq request)
         {
-            return Results.Ok(new PartyResp()
+            return Ok(new PartyResp()
             {
                 PartyData = ReadParty(request.PartyId)
             });
         }
-
-        protected async UniTask<IResult> CreateGuild(CreateGuildReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.CreateGuild}")]
+        public async UniTask<IActionResult> CreateGuild(CreateGuildReq request)
         {
             // Insert to database
             int guildId = Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
             // Cached the data
             GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, defaultGuildMemberRoles);
             cachedGuild[guildId] = guild;
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildLeader(UpdateGuildLeaderReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildLeader}")]
+        public async UniTask<IActionResult> UpdateGuildLeader(UpdateGuildLeaderReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.SetLeader(request.LeaderCharacterId);
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildLeader(request.GuildId, request.LeaderCharacterId);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildMessage(UpdateGuildMessageReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMessage}")]
+        public async UniTask<IActionResult> UpdateGuildMessage(UpdateGuildMessageReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.guildMessage = request.GuildMessage;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMessage(request.GuildId, request.GuildMessage);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildMessage2(UpdateGuildMessageReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMessage2}")]
+        public async UniTask<IActionResult> UpdateGuildMessage2(UpdateGuildMessageReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.guildMessage2 = request.GuildMessage;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMessage2(request.GuildId, request.GuildMessage);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildScore(UpdateGuildScoreReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildScore}")]
+        public async UniTask<IActionResult> UpdateGuildScore(UpdateGuildScoreReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.score = request.Score;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildScore(request.GuildId, request.Score);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildOptions(UpdateGuildOptionsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildOptions}")]
+        public async UniTask<IActionResult> UpdateGuildOptions(UpdateGuildOptionsReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.options = request.Options;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildOptions(request.GuildId, request.Options);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildAutoAcceptRequests(UpdateGuildAutoAcceptRequestsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildAutoAcceptRequests}")]
+        public async UniTask<IActionResult> UpdateGuildAutoAcceptRequests(UpdateGuildAutoAcceptRequestsReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.autoAcceptRequests = request.AutoAcceptRequests;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildAutoAcceptRequests(request.GuildId, request.AutoAcceptRequests);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildRank(UpdateGuildRankReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildRank}")]
+        public async UniTask<IActionResult> UpdateGuildRank(UpdateGuildRankReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.score = request.Rank;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildRank(request.GuildId, request.Rank);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildRole(UpdateGuildRoleReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildRole}")]
+        public async UniTask<IActionResult> UpdateGuildRole(UpdateGuildRoleReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.SetRole(request.GuildRole, request.GuildRoleData);
             cachedGuild[request.GuildId] = guild;
             // Update to
             Database.UpdateGuildRole(request.GuildId, request.GuildRole, request.GuildRoleData);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> UpdateGuildMemberRole(UpdateGuildMemberRoleReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMemberRole}")]
+        public async UniTask<IActionResult> UpdateGuildMemberRole(UpdateGuildMemberRoleReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.SetMemberRole(request.MemberCharacterId, request.GuildRole);
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildMemberRole(request.MemberCharacterId, request.GuildRole);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> DeleteGuild(DeleteGuildReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteGuild}")]
+        public async UniTask<IActionResult> DeleteGuild(DeleteGuildReq request)
         {
             // Remove data from cache
             if (cachedGuild.ContainsKey(request.GuildId))
@@ -597,15 +642,16 @@ namespace MultiplayerARPG.MMO
             }
             // Remove data from database
             Database.DeleteGuild(request.GuildId);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> UpdateCharacterGuild(UpdateCharacterGuildReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacterGuild}")]
+        public async UniTask<IActionResult> UpdateCharacterGuild(UpdateCharacterGuildReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             SocialCharacterData character = request.SocialCharacterData;
@@ -616,23 +662,24 @@ namespace MultiplayerARPG.MMO
                 cachedUserCharacter[character.id].GuildId = request.GuildId;
             // Update to database
             Database.UpdateCharacterGuild(character.id, request.GuildId, request.GuildRole);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = guild
             });
         }
-
-        protected async UniTask<IResult> ClearCharacterGuild(ClearCharacterGuildReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ClearCharacterGuild}")]
+        public async UniTask<IActionResult> ClearCharacterGuild(ClearCharacterGuildReq request)
         {
             PlayerCharacterData character = ReadCharacter(request.CharacterId);
             if (character == null)
             {
-                return Results.Ok();
+                return Ok();
             }
             GuildData guild = ReadGuild(character.GuildId);
             if (guild == null)
             {
-                return Results.Ok();
+                return Ok();
             }
             // Update to cache
             guild.RemoveMember(request.CharacterId);
@@ -645,95 +692,102 @@ namespace MultiplayerARPG.MMO
             }
             // Update to database
             Database.UpdateCharacterGuild(request.CharacterId, 0, 0);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> FindGuildName(FindGuildNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.FindGuildName}")]
+        public async UniTask<IActionResult> FindGuildName(FindGuildNameReq request)
         {
-            return Results.Ok(new FindGuildNameResp()
+            return Ok(new FindGuildNameResp()
             {
                 FoundAmount = FindGuildName(request.GuildName),
             });
         }
-
-        protected async UniTask<IResult> ReadGuild(ReadGuildReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadGuild}")]
+        public async UniTask<IActionResult> ReadGuild(ReadGuildReq request)
         {
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = ReadGuild(request.GuildId)
             });
         }
-
-        protected async UniTask<IResult> IncreaseGuildExp(IncreaseGuildExpReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.IncreaseGuildExp}")]
+        public async UniTask<IActionResult> IncreaseGuildExp(IncreaseGuildExpReq request)
         {
             // TODO: May validate guild by character
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             guild.IncreaseGuildExp(guildExpTree, request.Exp);
             // Update to cache
             cachedGuild.TryAdd(guild.id, guild);
             // Update to database
             Database.UpdateGuildLevel(request.GuildId, guild.level, guild.exp, guild.skillPoint);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = ReadGuild(request.GuildId)
             });
         }
-
-        protected async UniTask<IResult> AddGuildSkill(AddGuildSkillReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.AddGuildSkill}")]
+        public async UniTask<IActionResult> AddGuildSkill(AddGuildSkillReq request)
         {
             // TODO: May validate guild by character
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             guild.AddSkillLevel(request.SkillId);
             // Update to cache
             cachedGuild[guild.id] = guild;
             // Update to database
             Database.UpdateGuildSkillLevel(request.GuildId, request.SkillId, guild.GetSkillLevel(request.SkillId), guild.skillPoint);
-            return Results.Ok(new GuildResp()
+            return Ok(new GuildResp()
             {
                 GuildData = ReadGuild(request.GuildId)
             });
         }
-
-        protected async UniTask<IResult> GetGuildGold(GetGuildGoldReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetGuildGold}")]
+        public async UniTask<IActionResult> GetGuildGold(GetGuildGoldReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
-            return Results.Ok(new GuildGoldResp()
+            return Ok(new GuildGoldResp()
             {
                 GuildGold = guild.gold
             });
         }
-
-        protected async UniTask<IResult> ChangeGuildGold(ChangeGuildGoldReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeGuildGold}")]
+        public async UniTask<IActionResult> ChangeGuildGold(ChangeGuildGoldReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
             if (guild == null)
             {
-                return Results.NotFound();
+                return StatusCode(404);
             }
             // Update to cache
             guild.gold += request.ChangeAmount;
             cachedGuild[request.GuildId] = guild;
             // Update to database
             Database.UpdateGuildGold(request.GuildId, guild.gold);
-            return Results.Ok(new GuildGoldResp()
+            return Ok(new GuildGoldResp()
             {
                 GuildGold = guild.gold
             });
         }
-
-        protected async UniTask<IResult> ReadStorageItems(ReadStorageItemsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ReadStorageItems}")]
+        public async UniTask<IActionResult> ReadStorageItems(ReadStorageItemsReq request)
         {
             StorageId storageId = new StorageId(request.StorageType, request.StorageOwnerId);
             if (request.ReadForUpdate)
@@ -742,25 +796,26 @@ namespace MultiplayerARPG.MMO
                 if (updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime < 500)
                 {
                     // Not allow to update yet
-                    return Results.BadRequest();
+                    return StatusCode(400);
                 }
                 updatingStorages.TryRemove(storageId, out _);
                 updatingStorages.TryAdd(storageId, time);
             }
-            return Results.Ok(new ReadStorageItemsResp()
+            return Ok(new ReadStorageItemsResp()
             {
                 StorageCharacterItems = ReadStorageItems(storageId),
             });
         }
-
-        protected async UniTask<IResult> UpdateStorageItems(UpdateStorageItemsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateStorageItems}")]
+        public async UniTask<IActionResult> UpdateStorageItems(UpdateStorageItemsReq request)
         {
             StorageId storageId = new StorageId(request.StorageType, request.StorageOwnerId);
             long time = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             if (updatingStorages.TryGetValue(storageId, out long oldTime) && time - oldTime >= 500)
             {
                 // Timeout
-                return Results.BadRequest();
+                return StatusCode(400);
             }
             if (request.UpdateCharacterData)
             {
@@ -775,163 +830,196 @@ namespace MultiplayerARPG.MMO
             // Update data to database
             Database.UpdateStorageItems(request.StorageType, request.StorageOwnerId, request.StorageItems);
             updatingStorages.TryRemove(storageId, out _);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> MailList(MailListReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.MailList}")]
+        public async UniTask<IActionResult> MailList(MailListReq request)
         {
-            return Results.Ok(new MailListResp()
+            return Ok(new MailListResp()
             {
                 List = Database.MailList(request.UserId, request.OnlyNewMails)
             });
         }
-
-        protected async UniTask<IResult> UpdateReadMailState(UpdateReadMailStateReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateReadMailState}")]
+        public async UniTask<IActionResult> UpdateReadMailState(UpdateReadMailStateReq request)
         {
             long updated = Database.UpdateReadMailState(request.MailId, request.UserId);
             if (updated <= 0)
             {
-                return Results.Forbid();
+                return StatusCode(400, new SendMailResp()
+                {
+                    Error = UITextKeys.UI_ERROR_MAIL_READ_NOT_ALLOWED
+                });
             }
-            return Results.Ok(new UpdateReadMailStateResp()
+            return Ok(new UpdateReadMailStateResp()
             {
                 Mail = Database.GetMail(request.MailId, request.UserId)
             });
         }
-
-        protected async UniTask<IResult> UpdateClaimMailItemsState(UpdateClaimMailItemsStateReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateClaimMailItemsState}")]
+        public async UniTask<IActionResult> UpdateClaimMailItemsState(UpdateClaimMailItemsStateReq request)
         {
             long updated = Database.UpdateClaimMailItemsState(request.MailId, request.UserId);
             if (updated <= 0)
             {
-                return Results.Forbid();
+                return StatusCode(400, new SendMailResp()
+                {
+                    Error = UITextKeys.UI_ERROR_MAIL_CLAIM_NOT_ALLOWED
+                });
             }
-            return Results.Ok(new UpdateClaimMailItemsStateResp()
+            return Ok(new UpdateClaimMailItemsStateResp()
             {
                 Mail = Database.GetMail(request.MailId, request.UserId)
             });
         }
-
-        protected async UniTask<IResult> UpdateDeleteMailState(UpdateDeleteMailStateReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateDeleteMailState}")]
+        public async UniTask<IActionResult> UpdateDeleteMailState(UpdateDeleteMailStateReq request)
         {
             long updated = Database.UpdateDeleteMailState(request.MailId, request.UserId);
             if (updated <= 0)
             {
-                return Results.Forbid();
+                return StatusCode(400, new SendMailResp()
+                {
+                    Error = UITextKeys.UI_ERROR_MAIL_DELETE_NOT_ALLOWED
+                });
             }
-            return Results.Ok(new UpdateDeleteMailStateResp());
+            return Ok(new UpdateDeleteMailStateResp());
         }
-
-        protected async UniTask<IResult> SendMail(SendMailReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.SendMail}")]
+        public async UniTask<IActionResult> SendMail(SendMailReq request)
         {
             Mail mail = request.Mail;
             if (string.IsNullOrEmpty(mail.ReceiverId))
             {
-                return Results.NotFound();
+                return StatusCode(400, new SendMailResp()
+                {
+                    Error = UITextKeys.UI_ERROR_MAIL_SEND_NO_RECEIVER
+                });
             }
             long created = Database.CreateMail(mail);
             if (created <= 0)
             {
-                return Results.Forbid();
+                return StatusCode(500, new SendMailResp()
+                {
+                    Error = UITextKeys.UI_ERROR_MAIL_SEND_NOT_ALLOWED
+                });
             }
-            return Results.Ok(new SendMailResp());
+            return Ok(new SendMailResp());
         }
-
-        protected async UniTask<IResult> GetMail(GetMailReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetMail}")]
+        public async UniTask<IActionResult> GetMail(GetMailReq request)
         {
-            return Results.Ok(new GetMailResp()
+            return Ok(new GetMailResp()
             {
                 Mail = Database.GetMail(request.MailId, request.UserId),
             });
         }
-
-        protected async UniTask<IResult> GetMailNotification(GetMailNotificationReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetMailNotification}")]
+        public async UniTask<IActionResult> GetMailNotification(GetMailNotificationReq request)
         {
-            return Results.Ok(new GetMailNotificationResp()
+            return Ok(new GetMailNotificationResp()
             {
                 NotificationCount = Database.GetMailNotification(request.UserId),
             });
         }
-
-        protected async UniTask<IResult> GetIdByCharacterName(GetIdByCharacterNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetIdByCharacterName}")]
+        public async UniTask<IActionResult> GetIdByCharacterName(GetIdByCharacterNameReq request)
         {
-            return Results.Ok(new GetIdByCharacterNameResp()
+            return Ok(new GetIdByCharacterNameResp()
             {
                 Id = Database.GetIdByCharacterName(request.CharacterName),
             });
         }
-
-        protected async UniTask<IResult> GetUserIdByCharacterName(GetUserIdByCharacterNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserIdByCharacterName}")]
+        public async UniTask<IActionResult> GetUserIdByCharacterName(GetUserIdByCharacterNameReq request)
         {
-            return Results.Ok(new GetUserIdByCharacterNameResp()
+            return Ok(new GetUserIdByCharacterNameResp()
             {
                 UserId = Database.GetUserIdByCharacterName(request.CharacterName),
             });
         }
-
-        protected async UniTask<IResult> GetUserUnbanTime(GetUserUnbanTimeReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserUnbanTime}")]
+        public async UniTask<IActionResult> GetUserUnbanTime(GetUserUnbanTimeReq request)
         {
             long unbanTime = Database.GetUserUnbanTime(request.UserId);
-            return Results.Ok(new GetUserUnbanTimeResp()
+            return Ok(new GetUserUnbanTimeResp()
             {
                 UnbanTime = unbanTime,
             });
         }
-
-        protected async UniTask<IResult> SetUserUnbanTimeByCharacterName(SetUserUnbanTimeByCharacterNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.SetUserUnbanTimeByCharacterName}")]
+        public async UniTask<IActionResult> SetUserUnbanTimeByCharacterName(SetUserUnbanTimeByCharacterNameReq request)
         {
             Database.SetUserUnbanTimeByCharacterName(request.CharacterName, request.UnbanTime);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> SetCharacterUnmuteTimeByName(SetCharacterUnmuteTimeByNameReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.SetCharacterUnmuteTimeByName}")]
+        public async UniTask<IActionResult> SetCharacterUnmuteTimeByName(SetCharacterUnmuteTimeByNameReq request)
         {
             Database.SetCharacterUnmuteTimeByName(request.CharacterName, request.UnmuteTime);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> GetSummonBuffs(GetSummonBuffsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetSummonBuffs}")]
+        public async UniTask<IActionResult> GetSummonBuffs(GetSummonBuffsReq request)
         {
-            return Results.Ok(new GetSummonBuffsResp()
+            return Ok(new GetSummonBuffsResp()
             {
                 SummonBuffs = Database.GetSummonBuffs(request.CharacterId),
             });
         }
-
-        protected async UniTask<IResult> SetSummonBuffs(SetSummonBuffsReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.SetSummonBuffs}")]
+        public async UniTask<IActionResult> SetSummonBuffs(SetSummonBuffsReq request)
         {
             Database.SetSummonBuffs(request.CharacterId, request.SummonBuffs);
-            return Results.Ok();
+            return Ok();
         }
-
-        protected async UniTask<IResult> FindEmail(FindEmailReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.FindEmail}")]
+        public async UniTask<IActionResult> FindEmail(FindEmailReq request)
         {
-            return Results.Ok(new FindEmailResp()
+            return Ok(new FindEmailResp()
             {
                 FoundAmount = FindEmail(request.Email),
             });
         }
-
-        protected async UniTask<IResult> ValidateEmailVerification(ValidateEmailVerificationReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateEmailVerification}")]
+        public async UniTask<IActionResult> ValidateEmailVerification(ValidateEmailVerificationReq request)
         {
-            return Results.Ok(new ValidateEmailVerificationResp()
+            return Ok(new ValidateEmailVerificationResp()
             {
                 IsPass = Database.ValidateEmailVerification(request.UserId),
             });
         }
-
-        protected async UniTask<IResult> GetFriendRequestNotification(GetFriendRequestNotificationReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.GetFriendRequestNotification}")]
+        public async UniTask<IActionResult> GetFriendRequestNotification(GetFriendRequestNotificationReq request)
         {
-            return Results.Ok(new GetFriendRequestNotificationResp()
+            return Ok(new GetFriendRequestNotificationResp()
             {
                 NotificationCount = Database.GetFriendRequestNotification(request.CharacterId),
             });
         }
-
-        protected async UniTask<IResult> UpdateUserCount(UpdateUserCountReq request)
+        
+        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateUserCount}")]
+        public async UniTask<IActionResult> UpdateUserCount(UpdateUserCountReq request)
         {
             Database.UpdateUserCount(request.UserCount);
-            return Results.Ok();
+            return Ok();
         }
 
         protected bool ValidateAccessToken(string userId, string accessToken)
