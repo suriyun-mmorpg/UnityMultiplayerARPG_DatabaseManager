@@ -54,7 +54,7 @@ namespace MultiplayerARPG.MMO
             Database = database;
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateUserLogin}")]
+        [HttpPost($"/api/{DatabaseApiPath.ValidateUserLogin}")]
         public async UniTask<IActionResult> ValidateUserLogin(ValidateUserLoginReq request)
         {
             string userId = Database.ValidateUserLogin(request.Username, request.Password);
@@ -68,7 +68,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateAccessToken}")]
+        [HttpPost($"/api/{DatabaseApiPath.ValidateAccessToken}")]
         public async UniTask<IActionResult> ValidateAccessToken(ValidateAccessTokenReq request)
         {
             return Ok(new ValidateAccessTokenResp()
@@ -77,7 +77,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserLevel}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetUserLevel}")]
         public async UniTask<IActionResult> GetUserLevel(GetUserLevelReq request)
         {
             if (!Database.ValidateAccessToken(request.UserId, request.AccessToken))
@@ -90,7 +90,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetGold}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetGold}")]
         public async UniTask<IActionResult> GetGold(GetGoldReq request)
         {
             return Ok(new GoldResp()
@@ -99,7 +99,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeGold}")]
+        [HttpPost($"/api/{DatabaseApiPath.ChangeGold}")]
         public async UniTask<IActionResult> ChangeGold(ChangeGoldReq request)
         {
             int gold = ReadGold(request.UserId);
@@ -114,7 +114,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetCash}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetCash}")]
         public async UniTask<IActionResult> GetCash(GetCashReq request)
         {
             return Ok(new CashResp()
@@ -123,7 +123,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeCash}")]
+        [HttpPost($"/api/{DatabaseApiPath.ChangeCash}")]
         public async UniTask<IActionResult> ChangeCash(ChangeCashReq request)
         {
             int cash = ReadCash(request.UserId);
@@ -138,7 +138,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateAccessToken}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateAccessToken}")]
         public async UniTask<IActionResult> UpdateAccessToken(UpdateAccessTokenReq request)
         {
             // Store access token to the dictionary, it will be used to validate later
@@ -148,7 +148,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateUserLogin}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateUserLogin}")]
         public async UniTask<IActionResult> CreateUserLogin(CreateUserLoginReq request)
         {
             // Cache username, it will be used to validate later
@@ -158,7 +158,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.FindUsername}")]
+        [HttpPost($"/api/{DatabaseApiPath.FindUsername}")]
         public async UniTask<IActionResult> FindUsername(FindUsernameReq request)
         {
             return Ok(new FindUsernameResp()
@@ -167,7 +167,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateCharacter}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateCharacter}")]
         public async UniTask<IActionResult> CreateCharacter(CreateCharacterReq request)
         {
             PlayerCharacterData character = request.CharacterData;
@@ -179,7 +179,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadCharacter}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadCharacter}")]
         public async UniTask<IActionResult> ReadCharacter(ReadCharacterReq request)
         {
             return Ok(new CharacterResp()
@@ -188,7 +188,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadCharacters}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadCharacters}")]
         public async UniTask<IActionResult> ReadCharacters(ReadCharactersReq request)
         {
             List<PlayerCharacterData> characters = Database.ReadCharacters(request.UserId);
@@ -206,7 +206,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacter}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateCharacter}")]
         public async UniTask<IActionResult> UpdateCharacter(UpdateCharacterReq request)
         {
             PlayerCharacterData character = request.CharacterData;
@@ -220,7 +220,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteCharacter}")]
+        [HttpPost($"/api/{DatabaseApiPath.DeleteCharacter}")]
         public async UniTask<IActionResult> DeleteCharacter(DeleteCharacterReq request)
         {
             // Remove data from cache
@@ -235,7 +235,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.FindCharacterName}")]
+        [HttpPost($"/api/{DatabaseApiPath.FindCharacterName}")]
         public async UniTask<IActionResult> FindCharacterName(FindCharacterNameReq request)
         {
             return Ok(new FindCharacterNameResp()
@@ -244,7 +244,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.FindCharacters}")]
+        [HttpPost($"/api/{DatabaseApiPath.FindCharacters}")]
         public async UniTask<IActionResult> FindCharacters(FindCharacterNameReq request)
         {
             return Ok(new SocialCharactersResp()
@@ -253,21 +253,21 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateFriend}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateFriend}")]
         public async UniTask<IActionResult> CreateFriend(CreateFriendReq request)
         {
             Database.CreateFriend(request.Character1Id, request.Character2Id, request.State);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteFriend}")]
+        [HttpPost($"/api/{DatabaseApiPath.DeleteFriend}")]
         public async UniTask<IActionResult> DeleteFriend(DeleteFriendReq request)
         {
             Database.DeleteFriend(request.Character1Id, request.Character2Id);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadFriends}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadFriends}")]
         public async UniTask<IActionResult> ReadFriends(ReadFriendsReq request)
         {
             return Ok(new SocialCharactersResp()
@@ -276,7 +276,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateBuilding}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateBuilding}")]
         public async UniTask<IActionResult> CreateBuilding(CreateBuildingReq request)
         {
             BuildingSaveData building = request.BuildingData;
@@ -296,7 +296,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateBuilding}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateBuilding}")]
         public async UniTask<IActionResult> UpdateBuilding(UpdateBuildingReq request)
         {
             BuildingSaveData building = request.BuildingData;
@@ -316,7 +316,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteBuilding}")]
+        [HttpPost($"/api/{DatabaseApiPath.DeleteBuilding}")]
         public async UniTask<IActionResult> DeleteBuilding(DeleteBuildingReq request)
         {
             // Remove from cache
@@ -327,7 +327,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadBuildings}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadBuildings}")]
         public async UniTask<IActionResult> ReadBuildings(ReadBuildingsReq request)
         {
             return Ok(new BuildingsResp()
@@ -336,7 +336,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateParty}")]
         public async UniTask<IActionResult> CreateParty(CreatePartyReq request)
         {
             // Insert to database
@@ -350,7 +350,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateParty}")]
         public async UniTask<IActionResult> UpdateParty(UpdatePartyReq request)
         {
             PartyData party = ReadParty(request.PartyId);
@@ -369,7 +369,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdatePartyLeader}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdatePartyLeader}")]
         public async UniTask<IActionResult> UpdatePartyLeader(UpdatePartyLeaderReq request)
         {
             PartyData party = ReadParty(request.PartyId);
@@ -388,14 +388,14 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.DeleteParty}")]
         public async UniTask<IActionResult> DeleteParty(DeletePartyReq request)
         {
             Database.DeleteParty(request.PartyId);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacterParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateCharacterParty}")]
         public async UniTask<IActionResult> UpdateCharacterParty(UpdateCharacterPartyReq request)
         {
             PartyData party = ReadParty(request.PartyId);
@@ -418,7 +418,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ClearCharacterParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.ClearCharacterParty}")]
         public async UniTask<IActionResult> ClearCharacterParty(ClearCharacterPartyReq request)
         {
             PlayerCharacterData character = ReadCharacter(request.CharacterId);
@@ -442,7 +442,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadParty}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadParty}")]
         public async UniTask<IActionResult> ReadParty(ReadPartyReq request)
         {
             return Ok(new PartyResp()
@@ -451,7 +451,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.CreateGuild}")]
+        [HttpPost($"/api/{DatabaseApiPath.CreateGuild}")]
         public async UniTask<IActionResult> CreateGuild(CreateGuildReq request)
         {
             // Insert to database
@@ -465,7 +465,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildLeader}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildLeader}")]
         public async UniTask<IActionResult> UpdateGuildLeader(UpdateGuildLeaderReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -484,7 +484,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMessage}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMessage}")]
         public async UniTask<IActionResult> UpdateGuildMessage(UpdateGuildMessageReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -503,7 +503,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMessage2}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMessage2}")]
         public async UniTask<IActionResult> UpdateGuildMessage2(UpdateGuildMessageReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -522,7 +522,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildScore}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildScore}")]
         public async UniTask<IActionResult> UpdateGuildScore(UpdateGuildScoreReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -541,7 +541,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildOptions}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildOptions}")]
         public async UniTask<IActionResult> UpdateGuildOptions(UpdateGuildOptionsReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -560,7 +560,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildAutoAcceptRequests}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildAutoAcceptRequests}")]
         public async UniTask<IActionResult> UpdateGuildAutoAcceptRequests(UpdateGuildAutoAcceptRequestsReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -579,7 +579,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildRank}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildRank}")]
         public async UniTask<IActionResult> UpdateGuildRank(UpdateGuildRankReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -598,7 +598,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildRole}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildRole}")]
         public async UniTask<IActionResult> UpdateGuildRole(UpdateGuildRoleReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -617,7 +617,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateGuildMemberRole}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMemberRole}")]
         public async UniTask<IActionResult> UpdateGuildMemberRole(UpdateGuildMemberRoleReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -636,7 +636,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.DeleteGuild}")]
+        [HttpPost($"/api/{DatabaseApiPath.DeleteGuild}")]
         public async UniTask<IActionResult> DeleteGuild(DeleteGuildReq request)
         {
             // Remove data from cache
@@ -651,7 +651,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateCharacterGuild}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateCharacterGuild}")]
         public async UniTask<IActionResult> UpdateCharacterGuild(UpdateCharacterGuildReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -674,7 +674,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ClearCharacterGuild}")]
+        [HttpPost($"/api/{DatabaseApiPath.ClearCharacterGuild}")]
         public async UniTask<IActionResult> ClearCharacterGuild(ClearCharacterGuildReq request)
         {
             PlayerCharacterData character = ReadCharacter(request.CharacterId);
@@ -701,7 +701,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.FindGuildName}")]
+        [HttpPost($"/api/{DatabaseApiPath.FindGuildName}")]
         public async UniTask<IActionResult> FindGuildName(FindGuildNameReq request)
         {
             return Ok(new FindGuildNameResp()
@@ -710,7 +710,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadGuild}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadGuild}")]
         public async UniTask<IActionResult> ReadGuild(ReadGuildReq request)
         {
             return Ok(new GuildResp()
@@ -719,7 +719,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.IncreaseGuildExp}")]
+        [HttpPost($"/api/{DatabaseApiPath.IncreaseGuildExp}")]
         public async UniTask<IActionResult> IncreaseGuildExp(IncreaseGuildExpReq request)
         {
             // TODO: May validate guild by character
@@ -739,7 +739,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.AddGuildSkill}")]
+        [HttpPost($"/api/{DatabaseApiPath.AddGuildSkill}")]
         public async UniTask<IActionResult> AddGuildSkill(AddGuildSkillReq request)
         {
             // TODO: May validate guild by character
@@ -759,7 +759,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetGuildGold}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetGuildGold}")]
         public async UniTask<IActionResult> GetGuildGold(GetGuildGoldReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -773,7 +773,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ChangeGuildGold}")]
+        [HttpPost($"/api/{DatabaseApiPath.ChangeGuildGold}")]
         public async UniTask<IActionResult> ChangeGuildGold(ChangeGuildGoldReq request)
         {
             GuildData guild = ReadGuild(request.GuildId);
@@ -792,7 +792,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ReadStorageItems}")]
+        [HttpPost($"/api/{DatabaseApiPath.ReadStorageItems}")]
         public async UniTask<IActionResult> ReadStorageItems(ReadStorageItemsReq request)
         {
             StorageId storageId = new StorageId(request.StorageType, request.StorageOwnerId);
@@ -813,7 +813,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateStorageItems}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateStorageItems}")]
         public async UniTask<IActionResult> UpdateStorageItems(UpdateStorageItemsReq request)
         {
             StorageId storageId = new StorageId(request.StorageType, request.StorageOwnerId);
@@ -839,7 +839,7 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.MailList}")]
+        [HttpPost($"/api/{DatabaseApiPath.MailList}")]
         public async UniTask<IActionResult> MailList(MailListReq request)
         {
             return Ok(new MailListResp()
@@ -848,7 +848,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateReadMailState}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateReadMailState}")]
         public async UniTask<IActionResult> UpdateReadMailState(UpdateReadMailStateReq request)
         {
             long updated = Database.UpdateReadMailState(request.MailId, request.UserId);
@@ -865,7 +865,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateClaimMailItemsState}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateClaimMailItemsState}")]
         public async UniTask<IActionResult> UpdateClaimMailItemsState(UpdateClaimMailItemsStateReq request)
         {
             long updated = Database.UpdateClaimMailItemsState(request.MailId, request.UserId);
@@ -882,7 +882,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateDeleteMailState}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateDeleteMailState}")]
         public async UniTask<IActionResult> UpdateDeleteMailState(UpdateDeleteMailStateReq request)
         {
             long updated = Database.UpdateDeleteMailState(request.MailId, request.UserId);
@@ -896,7 +896,7 @@ namespace MultiplayerARPG.MMO
             return Ok(new UpdateDeleteMailStateResp());
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.SendMail}")]
+        [HttpPost($"/api/{DatabaseApiPath.SendMail}")]
         public async UniTask<IActionResult> SendMail(SendMailReq request)
         {
             Mail mail = request.Mail;
@@ -918,7 +918,7 @@ namespace MultiplayerARPG.MMO
             return Ok(new SendMailResp());
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetMail}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetMail}")]
         public async UniTask<IActionResult> GetMail(GetMailReq request)
         {
             return Ok(new GetMailResp()
@@ -927,7 +927,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetMailNotification}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetMailNotification}")]
         public async UniTask<IActionResult> GetMailNotification(GetMailNotificationReq request)
         {
             return Ok(new GetMailNotificationResp()
@@ -936,7 +936,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetIdByCharacterName}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetIdByCharacterName}")]
         public async UniTask<IActionResult> GetIdByCharacterName(GetIdByCharacterNameReq request)
         {
             return Ok(new GetIdByCharacterNameResp()
@@ -945,7 +945,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserIdByCharacterName}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetUserIdByCharacterName}")]
         public async UniTask<IActionResult> GetUserIdByCharacterName(GetUserIdByCharacterNameReq request)
         {
             return Ok(new GetUserIdByCharacterNameResp()
@@ -954,7 +954,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetUserUnbanTime}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetUserUnbanTime}")]
         public async UniTask<IActionResult> GetUserUnbanTime(GetUserUnbanTimeReq request)
         {
             long unbanTime = Database.GetUserUnbanTime(request.UserId);
@@ -964,21 +964,21 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.SetUserUnbanTimeByCharacterName}")]
+        [HttpPost($"/api/{DatabaseApiPath.SetUserUnbanTimeByCharacterName}")]
         public async UniTask<IActionResult> SetUserUnbanTimeByCharacterName(SetUserUnbanTimeByCharacterNameReq request)
         {
             Database.SetUserUnbanTimeByCharacterName(request.CharacterName, request.UnbanTime);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.SetCharacterUnmuteTimeByName}")]
+        [HttpPost($"/api/{DatabaseApiPath.SetCharacterUnmuteTimeByName}")]
         public async UniTask<IActionResult> SetCharacterUnmuteTimeByName(SetCharacterUnmuteTimeByNameReq request)
         {
             Database.SetCharacterUnmuteTimeByName(request.CharacterName, request.UnmuteTime);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetSummonBuffs}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetSummonBuffs}")]
         public async UniTask<IActionResult> GetSummonBuffs(GetSummonBuffsReq request)
         {
             return Ok(new GetSummonBuffsResp()
@@ -987,14 +987,14 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.SetSummonBuffs}")]
+        [HttpPost($"/api/{DatabaseApiPath.SetSummonBuffs}")]
         public async UniTask<IActionResult> SetSummonBuffs(SetSummonBuffsReq request)
         {
             Database.SetSummonBuffs(request.CharacterId, request.SummonBuffs);
             return Ok();
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.FindEmail}")]
+        [HttpPost($"/api/{DatabaseApiPath.FindEmail}")]
         public async UniTask<IActionResult> FindEmail(FindEmailReq request)
         {
             return Ok(new FindEmailResp()
@@ -1003,7 +1003,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.ValidateEmailVerification}")]
+        [HttpPost($"/api/{DatabaseApiPath.ValidateEmailVerification}")]
         public async UniTask<IActionResult> ValidateEmailVerification(ValidateEmailVerificationReq request)
         {
             return Ok(new ValidateEmailVerificationResp()
@@ -1012,7 +1012,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.GetFriendRequestNotification}")]
+        [HttpPost($"/api/{DatabaseApiPath.GetFriendRequestNotification}")]
         public async UniTask<IActionResult> GetFriendRequestNotification(GetFriendRequestNotificationReq request)
         {
             return Ok(new GetFriendRequestNotificationResp()
@@ -1021,7 +1021,7 @@ namespace MultiplayerARPG.MMO
             });
         }
         
-        [HttpPost][Route($"/api/{DatabaseApiPath.UpdateUserCount}")]
+        [HttpPost($"/api/{DatabaseApiPath.UpdateUserCount}")]
         public async UniTask<IActionResult> UpdateUserCount(UpdateUserCountReq request)
         {
             Database.UpdateUserCount(request.UserCount);
