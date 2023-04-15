@@ -4,6 +4,13 @@
     {
         protected ILogger _logger;
 
+        public BaseDatabase(ILogger<BaseDatabase> logger, IDatabaseUserLogin userLoginManager)
+        {
+            _logger = logger;
+            _userLoginManager = userLoginManager;
+            Initialize();
+        }
+
         public void LogInformation(string tag, string msg)
         {
             _logger.LogInformation(msg);

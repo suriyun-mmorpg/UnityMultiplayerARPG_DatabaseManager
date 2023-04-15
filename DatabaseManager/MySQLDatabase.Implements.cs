@@ -2,11 +2,8 @@
 {
     public partial class MySQLDatabase
     {
-        public MySQLDatabase(ILogger<MySQLDatabase> logger, IDatabaseUserLoginManager userLoginManager)
+        public MySQLDatabase(ILogger<MySQLDatabase> logger, IDatabaseUserLogin userLoginManager) : base(logger, userLoginManager)
         {
-            _logger = logger;
-            _userLoginManager = userLoginManager;
-            Initialize();
         }
     }
 }

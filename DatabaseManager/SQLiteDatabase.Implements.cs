@@ -2,11 +2,8 @@
 {
     public partial class SQLiteDatabase
     {
-        public SQLiteDatabase(ILogger<SQLiteDatabase> logger, IDatabaseUserLoginManager userLoginManager)
+        public SQLiteDatabase(ILogger<SQLiteDatabase> logger, IDatabaseUserLogin userLoginManager) : base(logger, userLoginManager)
         {
-            _logger = logger;
-            _userLoginManager = userLoginManager;
-            Initialize();
         }
     }
 }
