@@ -9,9 +9,9 @@ if (!int.TryParse(builder.Configuration["UserLoginManager"], out int userLoginMa
 switch (userLoginManager)
 {
     default:
-        DefaultUserLoginManagerConfig defaultUserLoginManagerConfig = builder.Configuration.GetValue<DefaultUserLoginManagerConfig>("UserLoginManagerConfig");
+        DefaultDatabaseUserLoginConfig defaultUserLoginConfig = builder.Configuration.GetValue<DefaultDatabaseUserLoginConfig>("UserLoginManagerConfig");
 
-        builder.Services.AddSingleton<IDatabaseUserLoginManager>(provider => new DefaultUserLoginManager(defaultUserLoginManagerConfig));
+        builder.Services.AddSingleton<IDatabaseUserLogin>(provider => new DefaultDatabaseUserLogin(defaultUserLoginConfig));
         break;
 }
 
