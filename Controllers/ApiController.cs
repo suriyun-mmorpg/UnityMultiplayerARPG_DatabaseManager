@@ -39,14 +39,9 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ValidateUserLogin}")]
         public async UniTask<IActionResult> ValidateUserLogin(ValidateUserLoginReq request)
         {
-            string userId = Database.ValidateUserLogin(request.Username, request.Password);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return StatusCode(401);
-            }
             return Ok(new ValidateUserLoginResp()
             {
-                UserId = userId,
+                UserId = Database.ValidateUserLogin(request.Username, request.Password),
             });
         }
 
@@ -62,10 +57,6 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.GetUserLevel}")]
         public async UniTask<IActionResult> GetUserLevel(GetUserLevelReq request)
         {
-            if (!Database.ValidateAccessToken(request.UserId, request.AccessToken))
-            {
-                return StatusCode(403);
-            }
             return Ok(new GetUserLevelResp()
             {
                 UserLevel = Database.GetUserLevel(request.UserId),
