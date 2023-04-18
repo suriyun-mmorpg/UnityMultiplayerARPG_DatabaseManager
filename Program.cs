@@ -39,15 +39,23 @@ switch (databaseServer)
 }
 
 // Api
-string? apiSecretKey = builder.Configuration["ApiSecretKey"];
-if (apiSecretKey == null)
-    apiSecretKey = string.Empty;
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
     // Use the default property (Pascal) casing
     options.SerializerSettings.ContractResolver = new DefaultContractResolver();
     options.SerializerSettings.NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore;
 });
+
+// App secret
+string? apiSecretKey = builder.Configuration["ApiSecretKey"];
+if (apiSecretKey == null)
+    apiSecretKey = string.Empty;
+builder.Services.AddAuthentication(AppSecretAuthenticationHandler.Scheme)
+    .AddScheme<AppSecretAuthenticationSchemeOptions, AppSecretAuthenticationHandler>(AppSecretAuthenticationHandler.Scheme, o =>
+    {
+        o.AppSecret = apiSecretKey;
+    });
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -62,9 +70,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

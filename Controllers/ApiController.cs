@@ -1,9 +1,10 @@
 ﻿using Cysharp.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MultiplayerARPG.MMO
 {
+    [Authorize]
     [ApiController]
     public partial class ApiController : ControllerBase
     {
