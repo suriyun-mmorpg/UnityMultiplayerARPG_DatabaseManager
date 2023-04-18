@@ -50,8 +50,8 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 string? apiSecretKey = builder.Configuration["ApiSecretKey"];
 if (apiSecretKey == null)
     apiSecretKey = string.Empty;
-builder.Services.AddAuthentication(AppSecretAuthenticationHandler.Scheme)
-    .AddScheme<AppSecretAuthenticationSchemeOptions, AppSecretAuthenticationHandler>(AppSecretAuthenticationHandler.Scheme, o =>
+builder.Services.AddAuthentication(AppSecretAuthenticationHandler.SCHEME)
+    .AddScheme<AppSecretAuthenticationSchemeOptions, AppSecretAuthenticationHandler>(AppSecretAuthenticationHandler.SCHEME, o =>
     {
         o.AppSecret = apiSecretKey;
     });

@@ -8,7 +8,7 @@ namespace MultiplayerARPG.MMO
 {
     public class AppSecretAuthenticationHandler : AuthenticationHandler<AppSecretAuthenticationSchemeOptions>
     {
-        public const string Scheme = "APP_SECRET";
+        public const string SCHEME = "APP_SECRET";
 
         public AppSecretAuthenticationHandler(IOptionsMonitor<AppSecretAuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
         {
@@ -33,9 +33,9 @@ namespace MultiplayerARPG.MMO
             }
 
             Claim[] claims = new Claim[] { new Claim(ClaimTypes.Name, authHeader.Parameter) };
-            ClaimsIdentity identity = new ClaimsIdentity(claims, base.Scheme.Name);
+            ClaimsIdentity identity = new ClaimsIdentity(claims, Scheme.Name);
             ClaimsPrincipal principal = new ClaimsPrincipal(identity);
-            AuthenticationTicket ticket = new AuthenticationTicket(principal, base.Scheme.Name);
+            AuthenticationTicket ticket = new AuthenticationTicket(principal, Scheme.Name);
             return AuthenticateResult.Success(ticket);
         }
     }
