@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MultiplayerARPG.MMO
 {
+#nullable disable
     [Authorize]
     [ApiController]
     public partial class ApiController : ControllerBase
