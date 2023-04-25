@@ -10,7 +10,6 @@ switch (userLoginManager)
 {
     default:
         DefaultDatabaseUserLoginConfig defaultUserLoginConfig = builder.Configuration.GetValue<DefaultDatabaseUserLoginConfig>("UserLoginManagerConfig");
-
         builder.Services.AddSingleton<IDatabaseUserLogin>(provider => new DefaultDatabaseUserLogin(defaultUserLoginConfig));
         break;
 }
