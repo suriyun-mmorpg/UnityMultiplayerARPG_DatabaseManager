@@ -1,6 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace MultiplayerARPG.MMO
 {
@@ -9,8 +10,8 @@ namespace MultiplayerARPG.MMO
     [ApiController]
     public partial class ApiController : ControllerBase
     {
-        private bool _disableCacheReading;
-        private GuildRoleData[] _defaultGuildRoles = new GuildRoleData[] {
+        private static bool s_IsConfigRead = false;
+        private static GuildRoleData[] s_GuildMemberRoles = new GuildRoleData[] {
             new GuildRoleData() { roleName = "Master", canInvite = true, canKick = true, canUseStorage = true },
             new GuildRoleData() { roleName = "Member 1", canInvite = false, canKick = false, canUseStorage = false },
             new GuildRoleData() { roleName = "Member 2", canInvite = false, canKick = false, canUseStorage = false },
@@ -18,8 +19,9 @@ namespace MultiplayerARPG.MMO
             new GuildRoleData() { roleName = "Member 4", canInvite = false, canKick = false, canUseStorage = false },
             new GuildRoleData() { roleName = "Member 5", canInvite = false, canKick = false, canUseStorage = false },
         };
-        private int[] _guildExpTree = new int[0];
+        private static int[] s_GuildExpTree = new int[0];
 
+        private bool _disableCacheReading;
         private readonly ILogger<ApiController> _logger;
         private readonly IConfiguration _config;
         private readonly IDatabaseCache _databaseCache;
@@ -36,6 +38,45 @@ namespace MultiplayerARPG.MMO
             _config = config;
             _databaseCache = databaseCache;
             Database = database;
+
+            if (s_IsConfigRead)
+                return;
+
+            s_IsConfigRead = true;
+            // Social System Setting
+            bool configFileFound = false;
+            string configFolder = "./config";
+            string configFilePath = configFolder + "/socialSystemSetting.json";
+            SocialSystemSetting socialSystemSetting = new SocialSystemSetting()
+            {
+                GuildMemberRoles = s_GuildMemberRoles,
+                GuildExpTree = s_GuildExpTree,
+            };
+
+            _logger.LogInformation("Reading social system setting config file from " + configFilePath);
+            if (System.IO.File.Exists(configFilePath))
+            {
+                _logger.LogInformation("Found social system setting config file");
+                string dataAsJson = System.IO.File.ReadAllText(configFilePath);
+                SocialSystemSetting replacingConfig = JsonConvert.DeserializeObject<SocialSystemSetting>(dataAsJson);
+                if (replacingConfig.GuildMemberRoles != null)
+                    socialSystemSetting.GuildMemberRoles = replacingConfig.GuildMemberRoles;
+                if (replacingConfig.GuildExpTree != null)
+                    socialSystemSetting.GuildExpTree = replacingConfig.GuildExpTree;
+                configFileFound = true;
+            }
+
+            s_GuildMemberRoles = socialSystemSetting.GuildMemberRoles;
+            s_GuildExpTree = socialSystemSetting.GuildExpTree;
+
+            if (!configFileFound)
+            {
+                // Write config file
+                _logger.LogInformation("Not found social system setting config file, creating a new one");
+                if (!Directory.Exists(configFolder))
+                    Directory.CreateDirectory(configFolder);
+                System.IO.File.WriteAllText(configFilePath, JsonConvert.SerializeObject(config, Formatting.Indented));
+            }
         }
 
         [HttpPost($"/api/{DatabaseApiPath.ValidateUserLogin}")]
@@ -420,7 +461,7 @@ namespace MultiplayerARPG.MMO
         {
             // Insert to database
             int guildId = Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
-            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, _defaultGuildRoles);
+            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, s_GuildMemberRoles);
             // Cache the data, it will be used later
             await _databaseCache.SetGuild(guild);
             return Ok(new GuildResp()
@@ -687,7 +728,7 @@ namespace MultiplayerARPG.MMO
             {
                 return StatusCode(404);
             }
-            guild.IncreaseGuildExp(_guildExpTree, request.Exp);
+            guild.IncreaseGuildExp(s_GuildExpTree, request.Exp);
             // Update to cache
             await _databaseCache.SetGuild(guild);
             // Update to database
@@ -1203,7 +1244,7 @@ namespace MultiplayerARPG.MMO
                     return guildResult.Value;
             }
             // Read guild from database
-            GuildData guild = Database.ReadGuild(id, _defaultGuildRoles);
+            GuildData guild = Database.ReadGuild(id, s_GuildMemberRoles);
             if (guild != null)
             {
                 // Store guild to cache
