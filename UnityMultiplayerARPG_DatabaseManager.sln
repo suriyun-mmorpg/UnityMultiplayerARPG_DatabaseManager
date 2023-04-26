@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33414.496
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityMultiplayerARPG_DbMgr", "UnityMultiplayerARPG_DbMgr.csproj", "{3D14D3AC-AB9D-4379-BAC9-F13A96B11AE1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityMultiplayerARPG_DatabaseManager", "UnityMultiplayerARPG_DatabaseManager.csproj", "{3D14D3AC-AB9D-4379-BAC9-F13A96B11AE1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
