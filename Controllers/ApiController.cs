@@ -45,7 +45,7 @@ namespace MultiplayerARPG.MMO
             s_IsConfigRead = true;
             // Social System Setting
             bool configFileFound = false;
-            string configFolder = "./config";
+            string configFolder = "./Config";
             string configFilePath = configFolder + "/socialSystemSetting.json";
             SocialSystemSetting socialSystemSetting = new SocialSystemSetting()
             {
