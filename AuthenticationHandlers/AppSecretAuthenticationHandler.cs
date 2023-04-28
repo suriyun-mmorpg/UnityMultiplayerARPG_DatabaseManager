@@ -22,9 +22,9 @@ namespace MultiplayerARPG.MMO
             {
                 authHeader = AuthenticationHeaderValue.Parse(Request.Headers["Authorization"]);
             }
-            catch (FormatException)
+            catch (FormatException ex)
             {
-                return AuthenticateResult.Fail("Wrong authentication header format");
+                return AuthenticateResult.Fail($"Wrong authentication header format: {ex.Message}");
             }
 
             if (string.IsNullOrEmpty(authHeader.Parameter) || authHeader.Parameter != Options.AppSecret)
