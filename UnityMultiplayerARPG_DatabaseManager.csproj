@@ -31,4 +31,16 @@
     <Folder Include="Config\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Config\mySqlConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Config\socialSystemSetting.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Config\sqliteConfig.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>
