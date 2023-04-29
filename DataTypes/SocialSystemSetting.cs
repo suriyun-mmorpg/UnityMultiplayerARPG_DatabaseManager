@@ -1,5 +1,6 @@
-﻿namespace MultiplayerARPG.MMO
+﻿namespace MultiplayerARPG
 {
+#nullable enable
     [Serializable]
     public struct SocialSystemSetting
     {
