@@ -84,7 +84,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new ValidateUserLoginResp()
             {
-                UserId = Database.ValidateUserLogin(request.Username, request.Password),
+                UserId = await Database.ValidateUserLogin(request.Username, request.Password),
             });
         }
 
@@ -102,7 +102,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetUserLevelResp()
             {
-                UserLevel = Database.GetUserLevel(request.UserId),
+                UserLevel = await Database.GetUserLevel(request.UserId),
             });
         }
 
@@ -207,7 +207,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ReadCharacters}")]
         public async UniTask<IActionResult> ReadCharacters(ReadCharactersReq request)
         {
-            List<PlayerCharacterData> characters = Database.ReadCharacters(request.UserId);
+            List<PlayerCharacterData> characters = await Database.ReadCharacters(request.UserId);
             // Read and cache character (or load from cache)
             long lastUpdate;
             for (int i = 0; i < characters.Count; ++i)
@@ -266,7 +266,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new SocialCharactersResp()
             {
-                List = Database.FindCharacters(request.FinderId, request.CharacterName, request.Skip, request.Limit)
+                List = await Database.FindCharacters(request.FinderId, request.CharacterName, request.Skip, request.Limit)
             });
         }
 
@@ -289,7 +289,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new SocialCharactersResp()
             {
-                List = Database.ReadFriends(request.CharacterId, request.ReadById2, request.State, request.Skip, request.Limit),
+                List = await Database.ReadFriends(request.CharacterId, request.ReadById2, request.State, request.Skip, request.Limit),
             });
         }
 
@@ -298,9 +298,9 @@ namespace MultiplayerARPG.MMO
         {
             BuildingSaveData building = request.BuildingData;
             // Insert data to database
-            Database.CreateBuilding(request.MapName, building);
+            Database.CreateBuilding(request.ChannelId, request.MapName, building);
             // Cache building data
-            await DatabaseCache.SetBuilding(request.MapName, building);
+            await DatabaseCache.SetBuilding(request.ChannelId, request.MapName, building);
             return Ok(new BuildingResp()
             {
                 BuildingData = request.BuildingData
@@ -312,9 +312,9 @@ namespace MultiplayerARPG.MMO
         {
             BuildingSaveData building = request.BuildingData;
             // Update data to database
-            Database.UpdateBuilding(request.MapName, building);
+            Database.UpdateBuilding(request.ChannelId, request.MapName, building);
             // Cache building data
-            await DatabaseCache.SetBuilding(request.MapName, building);
+            await DatabaseCache.SetBuilding(request.ChannelId, request.MapName, building);
             return Ok(new BuildingResp()
             {
                 BuildingData = request.BuildingData
@@ -325,9 +325,9 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> DeleteBuilding(DeleteBuildingReq request)
         {
             // Remove data from cache
-            await DatabaseCache.RemoveBuilding(request.MapName, request.BuildingId);
+            await DatabaseCache.RemoveBuilding(request.ChannelId, request.MapName, request.BuildingId);
             // Remove data from database
-            Database.DeleteBuilding(request.MapName, request.BuildingId);
+            Database.DeleteBuilding(request.ChannelId, request.MapName, request.BuildingId);
             return Ok();
         }
 
@@ -336,7 +336,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new BuildingsResp()
             {
-                List = await ReadBuildings(request.MapName),
+                List = await ReadBuildings(request.ChannelId, request.MapName),
             });
         }
 
@@ -344,7 +344,7 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> CreateParty(CreatePartyReq request)
         {
             // Insert to database
-            int partyId = Database.CreateParty(request.ShareExp, request.ShareItem, request.LeaderCharacterId);
+            int partyId = await Database.CreateParty(request.ShareExp, request.ShareItem, request.LeaderCharacterId);
             PartyData party = new PartyData(partyId, request.ShareExp, request.ShareItem, request.LeaderCharacterId);
             // Cache the data, it will be used later
             await DatabaseCache.SetParty(party);
@@ -460,7 +460,7 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> CreateGuild(CreateGuildReq request)
         {
             // Insert to database
-            int guildId = Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
+            int guildId = await Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
             GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, GuildMemberRoles);
             // Cache the data, it will be used later
             await DatabaseCache.SetGuild(guild);
@@ -845,14 +845,14 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new MailListResp()
             {
-                List = Database.MailList(request.UserId, request.OnlyNewMails)
+                List = await Database.MailList(request.UserId, request.OnlyNewMails)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.UpdateReadMailState}")]
         public async UniTask<IActionResult> UpdateReadMailState(UpdateReadMailStateReq request)
         {
-            long updated = Database.UpdateReadMailState(request.MailId, request.UserId);
+            long updated = await Database.UpdateReadMailState(request.MailId, request.UserId);
             if (updated <= 0)
             {
                 return StatusCode(400, new SendMailResp()
@@ -862,14 +862,14 @@ namespace MultiplayerARPG.MMO
             }
             return Ok(new UpdateReadMailStateResp()
             {
-                Mail = Database.GetMail(request.MailId, request.UserId)
+                Mail = await Database.GetMail(request.MailId, request.UserId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.UpdateClaimMailItemsState}")]
         public async UniTask<IActionResult> UpdateClaimMailItemsState(UpdateClaimMailItemsStateReq request)
         {
-            long updated = Database.UpdateClaimMailItemsState(request.MailId, request.UserId);
+            long updated = await Database.UpdateClaimMailItemsState(request.MailId, request.UserId);
             if (updated <= 0)
             {
                 return StatusCode(400, new SendMailResp()
@@ -879,14 +879,14 @@ namespace MultiplayerARPG.MMO
             }
             return Ok(new UpdateClaimMailItemsStateResp()
             {
-                Mail = Database.GetMail(request.MailId, request.UserId)
+                Mail = await Database.GetMail(request.MailId, request.UserId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.UpdateDeleteMailState}")]
         public async UniTask<IActionResult> UpdateDeleteMailState(UpdateDeleteMailStateReq request)
         {
-            long updated = Database.UpdateDeleteMailState(request.MailId, request.UserId);
+            long updated = await Database.UpdateDeleteMailState(request.MailId, request.UserId);
             if (updated <= 0)
             {
                 return StatusCode(400, new SendMailResp()
@@ -908,7 +908,7 @@ namespace MultiplayerARPG.MMO
                     Error = UITextKeys.UI_ERROR_MAIL_SEND_NO_RECEIVER
                 });
             }
-            long created = Database.CreateMail(mail);
+            long created = await Database.CreateMail(mail);
             if (created <= 0)
             {
                 return StatusCode(500, new SendMailResp()
@@ -924,7 +924,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetMailResp()
             {
-                Mail = Database.GetMail(request.MailId, request.UserId),
+                Mail = await Database.GetMail(request.MailId, request.UserId),
             });
         }
 
@@ -933,7 +933,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetMailNotificationResp()
             {
-                NotificationCount = Database.GetMailNotification(request.UserId),
+                NotificationCount = await Database.GetMailNotification(request.UserId),
             });
         }
 
@@ -942,7 +942,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetIdByCharacterNameResp()
             {
-                Id = Database.GetIdByCharacterName(request.CharacterName),
+                Id = await Database.GetIdByCharacterName(request.CharacterName),
             });
         }
 
@@ -951,14 +951,14 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetUserIdByCharacterNameResp()
             {
-                UserId = Database.GetUserIdByCharacterName(request.CharacterName),
+                UserId = await Database.GetUserIdByCharacterName(request.CharacterName),
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.GetUserUnbanTime}")]
         public async UniTask<IActionResult> GetUserUnbanTime(GetUserUnbanTimeReq request)
         {
-            long unbanTime = Database.GetUserUnbanTime(request.UserId);
+            long unbanTime = await Database.GetUserUnbanTime(request.UserId);
             return Ok(new GetUserUnbanTimeResp()
             {
                 UnbanTime = unbanTime,
@@ -984,7 +984,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetSummonBuffsResp()
             {
-                SummonBuffs = Database.GetSummonBuffs(request.CharacterId),
+                SummonBuffs = await Database.GetSummonBuffs(request.CharacterId),
             });
         }
 
@@ -1009,7 +1009,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new ValidateEmailVerificationResp()
             {
-                IsPass = Database.ValidateEmailVerification(request.UserId),
+                IsPass = await Database.ValidateEmailVerification(request.UserId),
             });
         }
 
@@ -1018,7 +1018,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GetFriendRequestNotificationResp()
             {
-                NotificationCount = Database.GetFriendRequestNotification(request.CharacterId),
+                NotificationCount = await Database.GetFriendRequestNotification(request.CharacterId),
             });
         }
 
@@ -1038,7 +1038,7 @@ namespace MultiplayerARPG.MMO
                 return accessTokenResult.HasValue && accessToken.Equals(accessTokenResult.Value);
             }
             // Doesn't cached yet, so try validate from database
-            if (Database.ValidateAccessToken(userId, accessToken))
+            if (await Database.ValidateAccessToken(userId, accessToken))
             {
                 // Pass, store access token to the dictionary
                 await DatabaseCache.SetUserAccessToken(userId, accessToken);
@@ -1058,7 +1058,7 @@ namespace MultiplayerARPG.MMO
             else
             {
                 // Doesn't cached yet, so try validate from database
-                foundAmount = Database.FindUsername(username);
+                foundAmount = await Database.FindUsername(username);
                 // Cache username, it will be used to validate later
                 if (foundAmount > 0)
                     await DatabaseCache.AddUsername(username);
@@ -1077,7 +1077,7 @@ namespace MultiplayerARPG.MMO
             else
             {
                 // Doesn't cached yet, so try validate from database
-                foundAmount = Database.FindCharacterName(characterName);
+                foundAmount = await Database.FindCharacterName(characterName);
                 // Cache character name, it will be used to validate later
                 if (foundAmount > 0)
                     await DatabaseCache.AddCharacterName(characterName);
@@ -1096,7 +1096,7 @@ namespace MultiplayerARPG.MMO
             else
             {
                 // Doesn't cached yet, so try validate from database
-                foundAmount = Database.FindGuildName(guildName);
+                foundAmount = await Database.FindGuildName(guildName);
                 // Cache guild name, it will be used to validate later
                 if (foundAmount > 0)
                     await DatabaseCache.AddGuildName(guildName);
@@ -1115,7 +1115,7 @@ namespace MultiplayerARPG.MMO
             else
             {
                 // Doesn't cached yet, so try validate from database
-                foundAmount = Database.FindEmail(email);
+                foundAmount = await Database.FindEmail(email);
                 // Cache username, it will be used to validate later
                 if (foundAmount > 0)
                     await DatabaseCache.AddEmail(email);
@@ -1123,19 +1123,19 @@ namespace MultiplayerARPG.MMO
             return foundAmount;
         }
 
-        protected async UniTask<List<BuildingSaveData>> ReadBuildings(string mapName)
+        protected async UniTask<List<BuildingSaveData>> ReadBuildings(string channelId, string mapName)
         {
             if (!DisableCacheReading)
             {
                 // Get buildings from cache
-                var buildingsResult = await DatabaseCache.GetBuildings(mapName);
+                var buildingsResult = await DatabaseCache.GetBuildings(channelId, mapName);
                 if (buildingsResult.HasValue)
                     return new List<BuildingSaveData>(buildingsResult.Value);
             }
             // Read buildings from database
-            List<BuildingSaveData> buildings = Database.ReadBuildings(mapName);
+            List<BuildingSaveData> buildings = await Database.ReadBuildings(channelId, mapName);
             // Store buildings to cache
-            await DatabaseCache.SetBuildings(mapName, buildings);
+            await DatabaseCache.SetBuildings(channelId, mapName, buildings);
             return buildings;
         }
 
@@ -1149,7 +1149,7 @@ namespace MultiplayerARPG.MMO
                     return goldResult.Value;
             }
             // Read gold from database
-            int gold = Database.GetGold(userId);
+            int gold = await Database.GetGold(userId);
             // Store gold to cache
             await DatabaseCache.SetUserGold(userId, gold);
             return gold;
@@ -1165,7 +1165,7 @@ namespace MultiplayerARPG.MMO
                     return cashResult.Value;
             }
             // Read cash from database
-            int cash = Database.GetCash(userId);
+            int cash = await Database.GetCash(userId);
             // Store cash to cache
             await DatabaseCache.SetUserCash(userId, cash);
             return cash;
@@ -1181,7 +1181,7 @@ namespace MultiplayerARPG.MMO
                     return characterResult.Value;
             }
             // Read character from database
-            PlayerCharacterData character = Database.ReadCharacter(id);
+            PlayerCharacterData character = await Database.ReadCharacter(id);
             if (character != null)
             {
                 // Store character to cache
@@ -1208,7 +1208,7 @@ namespace MultiplayerARPG.MMO
                     return characterResult.Value;
             }
             // Read character from database
-            SocialCharacterData character = SocialCharacterData.Create(Database.ReadCharacter(id, false, false, false, false, false, false, false, false, false, false, false));
+            SocialCharacterData character = SocialCharacterData.Create(await Database.ReadCharacter(id, false, false, false, false, false, false, false, false, false, false, false));
             // Store character to cache
             await DatabaseCache.SetSocialCharacter(character);
             return character;
@@ -1224,7 +1224,7 @@ namespace MultiplayerARPG.MMO
                     return partyResult.Value;
             }
             // Read party from database
-            PartyData party = Database.ReadParty(id);
+            PartyData party = await Database.ReadParty(id);
             if (party != null)
             {
                 // Store party to cache
@@ -1244,7 +1244,7 @@ namespace MultiplayerARPG.MMO
                     return guildResult.Value;
             }
             // Read guild from database
-            GuildData guild = Database.ReadGuild(id, GuildMemberRoles);
+            GuildData guild = await Database.ReadGuild(id, GuildMemberRoles);
             if (guild != null)
             {
                 // Store guild to cache
@@ -1264,7 +1264,7 @@ namespace MultiplayerARPG.MMO
                     return new List<CharacterItem>(storageItemsResult.Value);
             }
             // Read storageItems from database
-            List<CharacterItem> storageItems = Database.ReadStorageItems(storageId.storageType, storageId.storageOwnerId);
+            List<CharacterItem> storageItems = await Database.ReadStorageItems(storageId.storageType, storageId.storageOwnerId);
             // Store storageItems to cache
             await DatabaseCache.SetStorageItems(storageId, storageItems);
             return storageItems;
