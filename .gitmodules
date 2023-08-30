@@ -1,9 +1,9 @@
-[submodule "SharedData"]
-	path = SharedData
-	url = https://github.com/insthync/UnityMultiplayerARPG_SharedData.git
 [submodule "DevExtension"]
 	path = DevExtension
 	url = https://github.com/insthync/unity-dev-extension.git
+[submodule "SharedData"]
+	path = SharedData
+	url = ../UnityMultiplayerARPG_SharedData.git
 [submodule "DatabaseManagerSource"]
 	path = DatabaseManagerSource
-	url = https://github.com/insthync/UnityMultiplayerARPG_DatabaseManagerSource.git
+	url = ../UnityMultiplayerARPG_DatabaseManagerSource.git
