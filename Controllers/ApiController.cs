@@ -243,7 +243,7 @@ namespace MultiplayerARPG.MMO
         {
             List<UniTask> tasks = new List<UniTask>
             {
-                Database.UpdateCharacter(request.CharacterData, request.SummonBuffs, request.StorageItems),
+                Database.UpdateCharacter(request.CharacterData, request.SummonBuffs, request.StorageItems, request.DeleteStorageReservation),
             };
             if (!DisableDatabaseCaching)
             {
@@ -904,10 +904,46 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ReadStorageItems}")]
         public async UniTask<IActionResult> ReadStorageItems(ReadStorageItemsReq request)
         {
+            if (request.StorageType == StorageType.Guild)
+            {
+                if (await Database.FindReservedStorage(request.StorageType, request.StorageOwnerId) > 0)
+                {
+                    return StatusCode(400, new ReadStorageItemsResp()
+                    {
+                        Error = UITextKeys.UI_ERROR_OTHER_GUILD_MEMBER_ACCESSING_STORAGE,
+                    });
+                }
+                await Database.UpdateReservedStorage(request.StorageType, request.StorageOwnerId, request.ReserverId);
+            }
             return Ok(new ReadStorageItemsResp()
             {
                 StorageItems = await ReadStorageItems(request.StorageType, request.StorageOwnerId),
             });
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.UpdateStorageItems}")]
+        public async UniTask<IActionResult> UpdateStorageItems(UpdateStorageItemsReq request)
+        {
+            if (request.DeleteStorageReservation)
+            {
+                // Delete reserver
+                await Database.DeleteReservedStorage(request.StorageType, request.StorageOwnerId);
+            }
+            if (!DisableDatabaseCaching)
+            {
+                // Update to cache
+                await DatabaseCache.SetStorageItems(request.StorageType, request.StorageOwnerId, request.StorageItems);
+            }
+            // Update to database
+            await Database.UpdateStorageItems(request.StorageType, request.StorageOwnerId, request.StorageItems);
+            return Ok();
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.DeleteAllReservedStorage}")]
+        public async UniTask<IActionResult> DeleteAllReservedStorage()
+        {
+            await Database.DeleteAllReservedStorage();
+            return Ok();
         }
 
         [HttpPost($"/api/{DatabaseApiPath.MailList}")]
