@@ -3,14 +3,35 @@ using Newtonsoft.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Prepare logger
+var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.AddConsole();
+});
+builder.Services.AddSingleton(loggerFactory);
+
+var programLogger = loggerFactory.CreateLogger<Program>();
+
+// Config Manager
+if (!int.TryParse(builder.Configuration["ConfigManager"], out int configManager))
+    configManager = 0;
+switch (configManager)
+{
+    default:
+        builder.Services.AddSingleton<IConfigManager>(new DefaultConfigManager(loggerFactory.CreateLogger<DefaultConfigManager>()));
+        break;
+}
+
 // User login manager
 if (!int.TryParse(builder.Configuration["UserLoginManager"], out int userLoginManager))
     userLoginManager = 0;
+IDatabaseUserLogin databaseUserLogin = null;
 switch (userLoginManager)
 {
     default:
         DefaultDatabaseUserLoginConfig defaultUserLoginConfig = builder.Configuration.GetValue<DefaultDatabaseUserLoginConfig>("UserLoginManagerConfig");
-        builder.Services.AddSingleton<IDatabaseUserLogin>(provider => new DefaultDatabaseUserLogin(defaultUserLoginConfig));
+        databaseUserLogin = new DefaultDatabaseUserLogin(defaultUserLoginConfig);
+        builder.Services.AddSingleton(databaseUserLogin);
         break;
 }
 
@@ -20,22 +41,29 @@ if (!int.TryParse(builder.Configuration["CacheManager"], out int cacheManager))
 switch (cacheManager)
 {
     default:
-        builder.Services.AddSingleton<IDatabaseCache, LocalDatabaseCache>();
+        builder.Services.AddSingleton<IDatabaseCache>(new LocalDatabaseCache());
         break;
 }
 
 // Database server
 if (!int.TryParse(builder.Configuration["DatabaseServer"], out int databaseServer))
     databaseServer = 0;
+IDatabase database = null;
 switch (databaseServer)
 {
     case 1:
-        builder.Services.AddSingleton<IDatabase, SQLiteDatabase>();
+        database = new SQLiteDatabase(loggerFactory.CreateLogger<SQLiteDatabase>(), databaseUserLogin);
+        builder.Services.AddSingleton(database);
         break;
     default:
-        builder.Services.AddSingleton<IDatabase, MySQLDatabase>();
+        database = new MySQLDatabase(loggerFactory.CreateLogger<MySQLDatabase>(), databaseUserLogin);
+        builder.Services.AddSingleton(database);
         break;
 }
+
+programLogger.LogInformation("Start migration...");
+await database.DoMigration();
+programLogger.LogInformation("Migration done.");
 
 // Api
 builder.Services.AddControllers().AddNewtonsoftJson(options =>

@@ -10,7 +10,6 @@ namespace MultiplayerARPG.MMO
     [ApiController]
     public partial class ApiController : ControllerBase
     {
-        public static bool IsConfigRead { get; private set; } = false;
         public static GuildRoleData[] GuildMemberRoles { get; private set; } = new GuildRoleData[] {
             new GuildRoleData() { roleName = "Master", canInvite = true, canKick = true, canUseStorage = true },
             new GuildRoleData() { roleName = "Member 1", canInvite = false, canKick = false, canUseStorage = false },
@@ -22,7 +21,7 @@ namespace MultiplayerARPG.MMO
         public static int[] GuildExpTree { get; private set; } = new int[0];
 
         private readonly ILogger<ApiController> _logger;
-        private readonly IConfiguration _config;
+        private readonly IConfigManager _configManager;
         public bool DisableDatabaseCaching { get; private set; }
         public IDatabaseCache DatabaseCache { get; private set; }
 
@@ -30,53 +29,16 @@ namespace MultiplayerARPG.MMO
 
         public ApiController(
             ILogger<ApiController> logger,
-            IConfiguration config,
+            IConfigManager configManager,
             IDatabaseCache databaseCache,
             IDatabase database)
         {
             _logger = logger;
-            _config = config;
+            _configManager = configManager;
             DatabaseCache = databaseCache;
             Database = database;
-
-            if (IsConfigRead)
-                return;
-
-            IsConfigRead = true;
-            // Social System Setting
-            bool configFileFound = false;
-            string configFolder = "./Config";
-            string configFilePath = configFolder + "/socialSystemSetting.json";
-            SocialSystemSetting socialSystemSetting = new SocialSystemSetting()
-            {
-                GuildMemberRoles = GuildMemberRoles,
-                GuildExpTree = GuildExpTree,
-            };
-
-            _logger.LogInformation("Reading social system setting config file from " + configFilePath);
-            if (System.IO.File.Exists(configFilePath))
-            {
-                _logger.LogInformation("Found social system setting config file");
-                string dataAsJson = System.IO.File.ReadAllText(configFilePath);
-                SocialSystemSetting replacingConfig = JsonConvert.DeserializeObject<SocialSystemSetting>(dataAsJson);
-                if (replacingConfig.GuildMemberRoles != null)
-                    socialSystemSetting.GuildMemberRoles = replacingConfig.GuildMemberRoles;
-                if (replacingConfig.GuildExpTree != null)
-                    socialSystemSetting.GuildExpTree = replacingConfig.GuildExpTree;
-                configFileFound = true;
-            }
-
-            GuildMemberRoles = socialSystemSetting.GuildMemberRoles;
-            GuildExpTree = socialSystemSetting.GuildExpTree;
-
-            if (!configFileFound)
-            {
-                // Write config file
-                _logger.LogInformation("Not found social system setting config file, creating a new one");
-                if (!Directory.Exists(configFolder))
-                    Directory.CreateDirectory(configFolder);
-                System.IO.File.WriteAllText(configFilePath, JsonConvert.SerializeObject(config, Formatting.Indented));
-            }
+            GuildMemberRoles = configManager.GetSocialSystemSetting().GuildMemberRoles;
+            GuildExpTree = configManager.GetSocialSystemSetting().GuildExpTree;
         }
 
         [HttpPost($"/api/{DatabaseApiPath.ValidateUserLogin}")]
