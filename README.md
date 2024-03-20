@@ -1,6 +1,6 @@
 # UnityMultiplayerARPG_DatabaseManager
 
-A MMORPG KIT's database manager project written by using NET7
+A MMORPG KIT's database manager project written by using .NET8
 
 ## Config in `appsettings.json`
 
