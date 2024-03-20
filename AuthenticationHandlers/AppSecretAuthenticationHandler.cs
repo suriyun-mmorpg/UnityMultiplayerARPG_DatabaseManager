@@ -10,7 +10,7 @@ namespace MultiplayerARPG.MMO
     {
         public const string SCHEME = "APP_SECRET";
 
-        public AppSecretAuthenticationHandler(IOptionsMonitor<AppSecretAuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock) : base(options, logger, encoder, clock)
+        public AppSecretAuthenticationHandler(IOptionsMonitor<AppSecretAuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
         {
         }
 
