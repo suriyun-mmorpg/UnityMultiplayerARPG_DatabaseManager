@@ -1090,6 +1090,56 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
 
+        [HttpPost($"/api/{DatabaseApiPath.ReadSocialCharacter}")]
+        public async UniTask<IActionResult> ReadSocialCharacter(ReadSocialCharacterReq request)
+        {
+            return Ok(new SocialCharacterResp()
+            {
+                SocialCharacterData = await ReadSocialCharacter(request.CharacterId),
+            });
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.FindGuilds}")]
+        public async UniTask<IActionResult> FindGuilds(FindGuildNameReq request)
+        {
+            return Ok(new GuildsResp()
+            {
+                List = await Database.FindGuilds(request.FinderId, request.GuildName, request.Skip, request.Limit)
+            });
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.CreateGuildRequest}")]
+        public async UniTask<IActionResult> CreateGuildRequest(CreateGuildRequestReq request)
+        {
+            await Database.CreateGuildRequest(request.GuildId, request.RequesterId);
+            return Ok();
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.DeleteGuildRequest}")]
+        public async UniTask<IActionResult> DeleteGuildRequest(DeleteGuildRequestReq request)
+        {
+            await Database.DeleteGuildRequest(request.GuildId, request.RequesterId);
+            return Ok();
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.GetGuildRequests}")]
+        public async UniTask<IActionResult> GetGuildRequests(GetGuildRequestsReq request)
+        {
+            return Ok(new SocialCharactersResp()
+            {
+                List = await Database.GetGuildRequests(request.GuildId, request.Skip, request.Limit)
+            });
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.GetGuildRequestNotification}")]
+        public async UniTask<IActionResult> GetGuildRequestNotification(GetGuildRequestNotificationReq request)
+        {
+            return Ok(new GetGuildRequestNotificationResp()
+            {
+                NotificationCount = await Database.GetGuildRequestsNotification(request.GuildId),
+            });
+        }
+
         protected async UniTask<bool> ValidateAccessToken(string userId, string accessToken)
         {
             if (!DisableDatabaseCaching)
