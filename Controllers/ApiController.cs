@@ -80,17 +80,15 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ChangeGold}")]
         public async UniTask<IActionResult> ChangeGold(ChangeGoldReq request)
         {
-            int gold = await ReadGold(request.UserId);
+            int changedGold = await Database.ChangeGold(request.UserId, request.ChangeAmount);
             if (!DisableDatabaseCaching)
             {
                 // Cache the data, it will be used later
-                await DatabaseCache.SetUserGold(request.UserId, gold);
+                await DatabaseCache.SetUserGold(request.UserId, changedGold);
             }
-            // Update data to database
-            await Database.UpdateGold(request.UserId, gold);
             return Ok(new GoldResp()
             {
-                Gold = gold
+                Gold = changedGold,
             });
         }
 
@@ -106,18 +104,16 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ChangeCash}")]
         public async UniTask<IActionResult> ChangeCash(ChangeCashReq request)
         {
-            int cash = await ReadCash(request.UserId);
-            cash += request.ChangeAmount;
+            // Update data to database
+            int changedCash = await Database.ChangeCash(request.UserId, request.ChangeAmount);
             if (!DisableDatabaseCaching)
             {
                 // Cache the data, it will be used later
-                await DatabaseCache.SetUserCash(request.UserId, cash);
+                await DatabaseCache.SetUserCash(request.UserId, changedCash);
             }
-            // Update data to database
-            await Database.UpdateCash(request.UserId, cash);
             return Ok(new CashResp()
             {
-                Cash = cash
+                Cash = changedCash,
             });
         }
 
@@ -844,22 +840,22 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ChangeGuildGold}")]
         public async UniTask<IActionResult> ChangeGuildGold(ChangeGuildGoldReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
-            if (guild == null)
-            {
-                return StatusCode(404);
-            }
-            guild.gold += request.ChangeAmount;
+            // Update data to database
+            int changedGuildGold = await Database.ChangeGuildGold(request.GuildId, request.ChangeAmount);
             if (!DisableDatabaseCaching)
             {
-                // Update to cache
-                await DatabaseCache.SetGuild(guild);
+                // Cache the data, it will be used later
+                DatabaseCacheResult<GuildData> getGuildResult = await DatabaseCache.GetGuild(request.GuildId);
+                if (getGuildResult.HasValue)
+                {
+                    GuildData guildData = getGuildResult.Value;
+                    guildData.gold = changedGuildGold;
+                    await DatabaseCache.SetGuild(guildData);
+                }
             }
-            // Update to database
-            await Database.UpdateGuildGold(request.GuildId, guild.gold);
             return Ok(new GuildGoldResp()
             {
-                GuildGold = guild.gold
+                GuildGold = changedGuildGold,
             });
         }
 
