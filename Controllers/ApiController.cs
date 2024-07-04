@@ -1,7 +1,7 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using ConcurrentCollections;
+using Cysharp.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 
 namespace MultiplayerARPG.MMO
 {
@@ -10,15 +10,8 @@ namespace MultiplayerARPG.MMO
     [ApiController]
     public partial class ApiController : ControllerBase
     {
-        public static GuildRoleData[] GuildMemberRoles { get; private set; } = new GuildRoleData[] {
-            new GuildRoleData() { roleName = "Master", canInvite = true, canKick = true, canUseStorage = true },
-            new GuildRoleData() { roleName = "Member 1", canInvite = false, canKick = false, canUseStorage = false },
-            new GuildRoleData() { roleName = "Member 2", canInvite = false, canKick = false, canUseStorage = false },
-            new GuildRoleData() { roleName = "Member 3", canInvite = false, canKick = false, canUseStorage = false },
-            new GuildRoleData() { roleName = "Member 4", canInvite = false, canKick = false, canUseStorage = false },
-            new GuildRoleData() { roleName = "Member 5", canInvite = false, canKick = false, canUseStorage = false },
-        };
-        public static int[] GuildExpTree { get; private set; } = new int[0];
+        protected readonly ConcurrentHashSet<string> _insertingCharacterNames = new ConcurrentHashSet<string>();
+        protected readonly ConcurrentHashSet<string> _insertingGuildNames = new ConcurrentHashSet<string>();
 
         private readonly ILogger<ApiController> _logger;
         private readonly IConfigManager _configManager;
@@ -37,8 +30,6 @@ namespace MultiplayerARPG.MMO
             _configManager = configManager;
             DatabaseCache = databaseCache;
             Database = database;
-            GuildMemberRoles = configManager.GetSocialSystemSetting().GuildMemberRoles;
-            GuildExpTree = configManager.GetSocialSystemSetting().GuildExpTree;
         }
 
         [HttpPost($"/api/{DatabaseApiPath.ValidateUserLogin}")]
@@ -73,13 +64,14 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new GoldResp()
             {
-                Gold = await ReadGold(request.UserId)
+                Gold = await GetGold(request.UserId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.ChangeGold}")]
         public async UniTask<IActionResult> ChangeGold(ChangeGoldReq request)
         {
+            // Update data to database
             int changedGold = await Database.ChangeGold(request.UserId, request.ChangeAmount);
             if (!DisableDatabaseCaching)
             {
@@ -97,7 +89,7 @@ namespace MultiplayerARPG.MMO
         {
             return Ok(new CashResp()
             {
-                Cash = await ReadCash(request.UserId)
+                Cash = await GetCash(request.UserId)
             });
         }
 
@@ -169,27 +161,21 @@ namespace MultiplayerARPG.MMO
             });
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadCharacter}")]
-        public async UniTask<IActionResult> ReadCharacter(ReadCharacterReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetCharacter}")]
+        public async UniTask<IActionResult> GetCharacter(GetCharacterReq request)
         {
+            if (request.ForceClearCache)
+                await DatabaseCache.RemovePlayerCharacter(request.CharacterId);
             return Ok(new CharacterResp()
             {
-                CharacterData = await ReadCharacterWithUserIdValidation(request.CharacterId, request.UserId),
+                CharacterData = await GetCharacterWithUserIdValidation(request.CharacterId, request.UserId),
             });
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadCharacters}")]
-        public async UniTask<IActionResult> ReadCharacters(ReadCharactersReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetCharacters}")]
+        public async UniTask<IActionResult> GetCharacters(GetCharactersReq request)
         {
-            List<PlayerCharacterData> characters = await Database.ReadCharacters(request.UserId);
-            // Read and cache character (or load from cache)
-            long lastUpdate;
-            for (int i = 0; i < characters.Count; ++i)
-            {
-                lastUpdate = characters[i].LastUpdate;
-                characters[i] = await ReadCharacter(characters[i].Id);
-                characters[i].LastUpdate = lastUpdate;
-            }
+            List<PlayerCharacterData> characters = await Database.GetCharacters(request.UserId);
             return Ok(new CharactersResp()
             {
                 List = characters
@@ -221,7 +207,7 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> DeleteCharacter(DeleteCharacterReq request)
         {
             // Remove data from cache
-            PlayerCharacterData playerCharacter = await ReadCharacter(request.CharacterId);
+            PlayerCharacterData playerCharacter = await GetCharacter(request.CharacterId);
             if (!DisableDatabaseCaching)
             {
                 if (playerCharacter != null)
@@ -269,12 +255,12 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadFriends}")]
-        public async UniTask<IActionResult> ReadFriends(ReadFriendsReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetFriends}")]
+        public async UniTask<IActionResult> ReadFriends(GetFriendsReq request)
         {
             return Ok(new SocialCharactersResp()
             {
-                List = await Database.ReadFriends(request.CharacterId, request.ReadById2, request.State, request.Skip, request.Limit),
+                List = await Database.GetFriends(request.CharacterId, request.ReadById2, request.State, request.Skip, request.Limit),
             });
         }
 
@@ -328,12 +314,12 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadBuildings}")]
-        public async UniTask<IActionResult> ReadBuildings(ReadBuildingsReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetBuildings}")]
+        public async UniTask<IActionResult> GetBuildings(GetBuildingsReq request)
         {
             return Ok(new BuildingsResp()
             {
-                List = await ReadBuildings(request.ChannelId, request.MapName),
+                List = await GetBuildings(request.ChannelId, request.MapName),
             });
         }
 
@@ -357,7 +343,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateParty}")]
         public async UniTask<IActionResult> UpdateParty(UpdatePartyReq request)
         {
-            PartyData party = await ReadParty(request.PartyId);
+            PartyData party = await GetParty(request.PartyId);
             if (party == null)
             {
                 return StatusCode(404);
@@ -379,7 +365,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdatePartyLeader}")]
         public async UniTask<IActionResult> UpdatePartyLeader(UpdatePartyLeaderReq request)
         {
-            PartyData party = await ReadParty(request.PartyId);
+            PartyData party = await GetParty(request.PartyId);
             if (party == null)
             {
                 return StatusCode(404);
@@ -414,7 +400,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateCharacterParty}")]
         public async UniTask<IActionResult> UpdateCharacterParty(UpdateCharacterPartyReq request)
         {
-            PartyData party = await ReadParty(request.PartyId);
+            PartyData party = await GetParty(request.PartyId);
             if (party == null)
             {
                 return StatusCode(404);
@@ -440,12 +426,12 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ClearCharacterParty}")]
         public async UniTask<IActionResult> ClearCharacterParty(ClearCharacterPartyReq request)
         {
-            PlayerCharacterData character = await ReadCharacter(request.CharacterId);
+            PlayerCharacterData character = await GetCharacter(request.CharacterId);
             if (character == null)
             {
                 return Ok();
             }
-            PartyData party = await ReadParty(character.PartyId);
+            PartyData party = await GetParty(character.PartyId);
             if (party == null)
             {
                 return Ok();
@@ -464,18 +450,23 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadParty}")]
-        public async UniTask<IActionResult> ReadParty(ReadPartyReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetParty}")]
+        public async UniTask<IActionResult> ReadParty(GetPartyReq request)
         {
             return Ok(new PartyResp()
             {
-                PartyData = await ReadParty(request.PartyId)
+                PartyData = await GetParty(request.PartyId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.CreateGuild}")]
         public async UniTask<IActionResult> CreateGuild(CreateGuildReq request)
         {
+            if (_insertingGuildNames.Contains(request.GuildName))
+            {
+                return StatusCode(400, new GuildResp());
+            }
+            _insertingGuildNames.Add(request.GuildName);
             long foundAmount = await FindGuildName(request.GuildName);
             if (foundAmount > 0)
             {
@@ -483,7 +474,13 @@ namespace MultiplayerARPG.MMO
             }
             // Insert to database
             int guildId = await Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
-            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, GuildMemberRoles);
+            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, _configManager.GetSocialSystemSetting().GuildMemberRoles);
+            if (!DisableDatabaseCaching)
+            {
+                // Cache the data, it will be used later
+                await DatabaseCache.SetGuild(guild);
+            }
+            _insertingGuildNames.TryRemove(request.GuildName);
             // Cache the data, it will be used later
             return Ok(new GuildResp()
             {
@@ -494,7 +491,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildLeader}")]
         public async UniTask<IActionResult> UpdateGuildLeader(UpdateGuildLeaderReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -516,7 +513,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMessage}")]
         public async UniTask<IActionResult> UpdateGuildMessage(UpdateGuildMessageReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -538,7 +535,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMessage2}")]
         public async UniTask<IActionResult> UpdateGuildMessage2(UpdateGuildMessageReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -560,7 +557,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildScore}")]
         public async UniTask<IActionResult> UpdateGuildScore(UpdateGuildScoreReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -582,7 +579,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildOptions}")]
         public async UniTask<IActionResult> UpdateGuildOptions(UpdateGuildOptionsReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -604,7 +601,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildAutoAcceptRequests}")]
         public async UniTask<IActionResult> UpdateGuildAutoAcceptRequests(UpdateGuildAutoAcceptRequestsReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -626,7 +623,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildRank}")]
         public async UniTask<IActionResult> UpdateGuildRank(UpdateGuildRankReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -648,7 +645,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildRole}")]
         public async UniTask<IActionResult> UpdateGuildRole(UpdateGuildRoleReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -670,7 +667,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMemberRole}")]
         public async UniTask<IActionResult> UpdateGuildMemberRole(UpdateGuildMemberRoleReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -692,7 +689,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.DeleteGuild}")]
         public async UniTask<IActionResult> DeleteGuild(DeleteGuildReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (!DisableDatabaseCaching)
             {
                 if (guild != null)
@@ -711,7 +708,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateCharacterGuild}")]
         public async UniTask<IActionResult> UpdateCharacterGuild(UpdateCharacterGuildReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -737,15 +734,15 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.ClearCharacterGuild}")]
         public async UniTask<IActionResult> ClearCharacterGuild(ClearCharacterGuildReq request)
         {
-            PlayerCharacterData character = await ReadCharacter(request.CharacterId);
+            PlayerCharacterData character = await GetCharacter(request.CharacterId);
             if (character == null)
             {
-                return Ok();
+                return StatusCode(404);
             }
-            GuildData guild = await ReadGuild(character.GuildId);
+            GuildData guild = await GetGuild(character.GuildId);
             if (guild == null)
             {
-                return Ok();
+                return StatusCode(404);
             }
             guild.RemoveMember(request.CharacterId);
             if (!DisableDatabaseCaching)
@@ -770,24 +767,24 @@ namespace MultiplayerARPG.MMO
             });
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadGuild}")]
-        public async UniTask<IActionResult> ReadGuild(ReadGuildReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetGuild}")]
+        public async UniTask<IActionResult> ReadGuild(GetGuildReq request)
         {
             return Ok(new GuildResp()
             {
-                GuildData = await ReadGuild(request.GuildId)
+                GuildData = await GetGuild(request.GuildId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.IncreaseGuildExp}")]
         public async UniTask<IActionResult> IncreaseGuildExp(IncreaseGuildExpReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
             }
-            guild.IncreaseGuildExp(GuildExpTree, request.Exp);
+            guild.IncreaseGuildExp(_configManager.GetSocialSystemSetting().GuildExpTree, request.Exp);
             if (!DisableDatabaseCaching)
             {
                 // Update to cache
@@ -797,14 +794,14 @@ namespace MultiplayerARPG.MMO
             await Database.UpdateGuildLevel(request.GuildId, guild.level, guild.exp, guild.skillPoint);
             return Ok(new GuildResp()
             {
-                GuildData = await ReadGuild(request.GuildId)
+                GuildData = await GetGuild(request.GuildId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.AddGuildSkill}")]
         public async UniTask<IActionResult> AddGuildSkill(AddGuildSkillReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -819,14 +816,14 @@ namespace MultiplayerARPG.MMO
             await Database.UpdateGuildSkillLevel(request.GuildId, request.SkillId, guild.GetSkillLevel(request.SkillId), guild.skillPoint);
             return Ok(new GuildResp()
             {
-                GuildData = await ReadGuild(request.GuildId)
+                GuildData = await GetGuild(request.GuildId)
             });
         }
 
         [HttpPost($"/api/{DatabaseApiPath.GetGuildGold}")]
         public async UniTask<IActionResult> GetGuildGold(GetGuildGoldReq request)
         {
-            GuildData guild = await ReadGuild(request.GuildId);
+            GuildData guild = await GetGuild(request.GuildId);
             if (guild == null)
             {
                 return StatusCode(404);
@@ -859,23 +856,23 @@ namespace MultiplayerARPG.MMO
             });
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadStorageItems}")]
-        public async UniTask<IActionResult> ReadStorageItems(ReadStorageItemsReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetStorageItems}")]
+        public async UniTask<IActionResult> ReadStorageItems(GetStorageItemsReq request)
         {
             if (request.StorageType == StorageType.Guild)
             {
                 if (await Database.FindReservedStorage(request.StorageType, request.StorageOwnerId) > 0)
                 {
-                    return StatusCode(400, new ReadStorageItemsResp()
+                    return StatusCode(400, new GetStorageItemsResp()
                     {
                         Error = UITextKeys.UI_ERROR_OTHER_GUILD_MEMBER_ACCESSING_STORAGE,
                     });
                 }
                 await Database.UpdateReservedStorage(request.StorageType, request.StorageOwnerId, request.ReserverId);
             }
-            return Ok(new ReadStorageItemsResp()
+            return Ok(new GetStorageItemsResp()
             {
-                StorageItems = await ReadStorageItems(request.StorageType, request.StorageOwnerId),
+                StorageItems = await GetStorageItems(request.StorageType, request.StorageOwnerId),
             });
         }
 
@@ -1086,12 +1083,12 @@ namespace MultiplayerARPG.MMO
             return Ok();
         }
 
-        [HttpPost($"/api/{DatabaseApiPath.ReadSocialCharacter}")]
-        public async UniTask<IActionResult> ReadSocialCharacter(ReadSocialCharacterReq request)
+        [HttpPost($"/api/{DatabaseApiPath.GetSocialCharacter}")]
+        public async UniTask<IActionResult> ReadSocialCharacter(GetSocialCharacterReq request)
         {
             return Ok(new SocialCharacterResp()
             {
-                SocialCharacterData = await ReadSocialCharacter(request.CharacterId),
+                SocialCharacterData = await GetSocialCharacter(request.CharacterId),
             });
         }
 
@@ -1134,6 +1131,13 @@ namespace MultiplayerARPG.MMO
             {
                 NotificationCount = await Database.GetGuildRequestsNotification(request.GuildId),
             });
+        }
+
+        [HttpPost($"/api/{DatabaseApiPath.UpdateGuildMemberCount}")]
+        public async UniTask<IActionResult> UpdateGuildMemberCount(UpdateGuildMemberCountReq request)
+        {
+            await Database.UpdateGuildMemberCount(request.GuildId, request.MaxGuildMember);
+            return Ok();
         }
 
         protected async UniTask<bool> ValidateAccessToken(string userId, string accessToken)
@@ -1233,7 +1237,7 @@ namespace MultiplayerARPG.MMO
             return foundAmount;
         }
 
-        protected async UniTask<List<BuildingSaveData>> ReadBuildings(string channel, string mapName)
+        protected async UniTask<List<BuildingSaveData>> GetBuildings(string channel, string mapName)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1243,7 +1247,9 @@ namespace MultiplayerARPG.MMO
                     return new List<BuildingSaveData>(buildingsResult.Value);
             }
             // Read buildings from database
-            List<BuildingSaveData> buildings = await Database.ReadBuildings(channel, mapName);
+            List<BuildingSaveData> buildings = await Database.GetBuildings(channel, mapName);
+            if (buildings == null)
+                buildings = new List<BuildingSaveData>();
             if (!DisableDatabaseCaching)
             {
                 // Store buildings to cache
@@ -1252,7 +1258,7 @@ namespace MultiplayerARPG.MMO
             return buildings;
         }
 
-        protected async UniTask<int> ReadGold(string userId)
+        protected async UniTask<int> GetGold(string userId)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1271,7 +1277,7 @@ namespace MultiplayerARPG.MMO
             return gold;
         }
 
-        protected async UniTask<int> ReadCash(string userId)
+        protected async UniTask<int> GetCash(string userId)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1290,7 +1296,7 @@ namespace MultiplayerARPG.MMO
             return cash;
         }
 
-        protected async UniTask<PlayerCharacterData> ReadCharacter(string id)
+        protected async UniTask<PlayerCharacterData> GetCharacter(string id)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1300,7 +1306,7 @@ namespace MultiplayerARPG.MMO
                     return characterResult.Value;
             }
             // Read character from database
-            PlayerCharacterData character = await Database.ReadCharacter(id);
+            PlayerCharacterData character = await Database.GetCharacter(id);
             if (!DisableDatabaseCaching)
             {
                 if (character != null)
@@ -1312,15 +1318,15 @@ namespace MultiplayerARPG.MMO
             return character;
         }
 
-        protected async UniTask<PlayerCharacterData> ReadCharacterWithUserIdValidation(string id, string userId)
+        protected async UniTask<PlayerCharacterData> GetCharacterWithUserIdValidation(string id, string userId)
         {
-            PlayerCharacterData character = await ReadCharacter(id);
+            PlayerCharacterData character = await GetCharacter(id);
             if (character != null && character.UserId != userId)
                 character = null;
             return character;
         }
 
-        protected async UniTask<SocialCharacterData> ReadSocialCharacter(string id)
+        protected async UniTask<SocialCharacterData> GetSocialCharacter(string id)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1330,7 +1336,7 @@ namespace MultiplayerARPG.MMO
                     return characterResult.Value;
             }
             // Read character from database
-            SocialCharacterData character = SocialCharacterData.Create(await Database.ReadCharacter(id, false, false, false, false, false, false, false, false, false, false, false));
+            SocialCharacterData character = SocialCharacterData.Create(await Database.GetCharacter(id, false, false, false, false, false, false, false, false, false, false, false));
             if (!DisableDatabaseCaching)
             {
                 // Store character to cache
@@ -1339,7 +1345,7 @@ namespace MultiplayerARPG.MMO
             return character;
         }
 
-        protected async UniTask<PartyData> ReadParty(int id)
+        protected async UniTask<PartyData> GetParty(int id)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1349,7 +1355,7 @@ namespace MultiplayerARPG.MMO
                     return partyResult.Value;
             }
             // Read party from database
-            PartyData party = await Database.ReadParty(id);
+            PartyData party = await Database.GetParty(id);
             if (!DisableDatabaseCaching)
             {
                 if (party != null)
@@ -1363,7 +1369,7 @@ namespace MultiplayerARPG.MMO
             return party;
         }
 
-        protected async UniTask<GuildData> ReadGuild(int id)
+        protected async UniTask<GuildData> GetGuild(int id)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1373,7 +1379,7 @@ namespace MultiplayerARPG.MMO
                     return guildResult.Value;
             }
             // Read guild from database
-            GuildData guild = await Database.ReadGuild(id, GuildMemberRoles);
+            GuildData guild = await Database.GetGuild(id, _configManager.GetSocialSystemSetting().GuildMemberRoles);
             if (!DisableDatabaseCaching)
             {
                 if (guild != null)
@@ -1387,7 +1393,7 @@ namespace MultiplayerARPG.MMO
             return guild;
         }
 
-        protected async UniTask<List<CharacterItem>> ReadStorageItems(StorageType storageType, string storageOwnerId)
+        protected async UniTask<List<CharacterItem>> GetStorageItems(StorageType storageType, string storageOwnerId)
         {
             if (!DisableDatabaseCaching)
             {
@@ -1397,7 +1403,9 @@ namespace MultiplayerARPG.MMO
                     return new List<CharacterItem>(storageItemsResult.Value);
             }
             // Read storageItems from database
-            List<CharacterItem> storageItems = await Database.ReadStorageItems(storageType, storageOwnerId);
+            List<CharacterItem> storageItems = await Database.GetStorageItems(storageType, storageOwnerId);
+            if (storageItems == null)
+                storageItems = new List<CharacterItem>();
             if (!DisableDatabaseCaching)
             {
                 // Store storageItems to cache
