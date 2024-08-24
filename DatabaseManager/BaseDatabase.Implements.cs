@@ -7,7 +7,7 @@
         public BaseDatabase(ILogger<BaseDatabase> logger, IDatabaseUserLogin userLoginManager)
         {
             _logger = logger;
-            _userLoginManager = userLoginManager;
+            UserLoginManager = userLoginManager;
             Initialize();
         }
 
