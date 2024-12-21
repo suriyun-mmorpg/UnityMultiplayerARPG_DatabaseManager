@@ -156,15 +156,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateCharacter}")]
         public async UniTask<IActionResult> UpdateCharacter(UpdateCharacterReq request)
         {
-            List<UniTask> tasks = new List<UniTask>
-            {
-                Database.UpdateCharacter(request.State, request.CharacterData, request.SummonBuffs, request.PlayerStorageItems, request.ProtectedStorageItems, request.DeleteStorageReservation),
-            };
-            if (request.PlayerStorageItems != null)
-                tasks.Add(DatabaseCache.SetStorageItems(StorageType.Player, request.CharacterData.UserId, request.PlayerStorageItems));
-            if (request.ProtectedStorageItems != null)
-                tasks.Add(DatabaseCache.SetStorageItems(StorageType.Player, request.CharacterData.UserId, request.ProtectedStorageItems));
-            await UniTask.WhenAll(tasks);
+            await Database.UpdateCharacter(request.State, request.CharacterData, request.SummonBuffs, request.DeleteStorageReservation);
             return Ok(new CharacterResp()
             {
                 CharacterData = request.CharacterData,
@@ -240,13 +232,7 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/api/{DatabaseApiPath.UpdateBuilding}")]
         public async UniTask<IActionResult> UpdateBuilding(UpdateBuildingReq request)
         {
-            List<UniTask> tasks = new List<UniTask>
-            {
-                Database.UpdateBuilding(request.ChannelId, request.MapName, request.BuildingData, request.StorageItems),
-            };
-            if (request.StorageItems != null)
-                tasks.Add(DatabaseCache.SetStorageItems(StorageType.Building, request.BuildingData.Id, request.StorageItems));
-            await UniTask.WhenAll(tasks);
+            await Database.UpdateBuilding(request.ChannelId, request.MapName, request.BuildingData);
             return Ok(new BuildingResp()
             {
                 BuildingData = request.BuildingData
