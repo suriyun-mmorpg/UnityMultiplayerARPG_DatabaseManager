@@ -16,8 +16,9 @@ namespace MultiplayerARPG.MMO
         private readonly ILogger<ApiController> _logger;
         private readonly IConfigManager _configManager;
         public IDatabaseCache DatabaseCache { get; private set; }
-
         public IDatabase Database { get; private set; }
+        public GuildRoleData[] GuildMemberRoles => _configManager.GetSocialSystemSetting().GuildMemberRoles;
+        public int[] GuildExpTree => _configManager.GetSocialSystemSetting().GuildExpTree;
 
         public ApiController(
             ILogger<ApiController> logger,
@@ -121,6 +122,11 @@ namespace MultiplayerARPG.MMO
         public async UniTask<IActionResult> CreateCharacter(CreateCharacterReq request)
         {
             PlayerCharacterData character = request.CharacterData;
+            if (_insertingCharacterNames.Contains(character.CharacterName))
+            {
+                return StatusCode(400, new CharacterResp());
+            }
+            _insertingCharacterNames.Add(character.CharacterName);
             long foundAmount = await FindCharacterName(character.CharacterName);
             if (foundAmount > 0)
             {
@@ -128,6 +134,7 @@ namespace MultiplayerARPG.MMO
             }
             // Insert new character to database
             await Database.CreateCharacter(request.UserId, character);
+            _insertingCharacterNames.TryRemove(character.CharacterName);
             return Ok(new CharacterResp()
             {
                 CharacterData = character
@@ -402,14 +409,13 @@ namespace MultiplayerARPG.MMO
             }
             // Insert to database
             int guildId = await Database.CreateGuild(request.GuildName, request.LeaderCharacterId);
-            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, _configManager.GetSocialSystemSetting().GuildMemberRoles);
+            GuildData guild = new GuildData(guildId, request.GuildName, request.LeaderCharacterId, GuildMemberRoles);
             // Cache the data, it will be used later
             await UniTask.WhenAll(
                 DatabaseCache.SetGuild(guild),
                 DatabaseCache.SetPlayerCharacterGuildIdAndRole(request.LeaderCharacterId, guildId, 0),
                 DatabaseCache.SetSocialCharacterGuildIdAndRole(request.LeaderCharacterId, guildId, 0));
             _insertingGuildNames.TryRemove(request.GuildName);
-            // Cache the data, it will be used later
             return Ok(new GuildResp()
             {
                 GuildData = guild
@@ -672,7 +678,7 @@ namespace MultiplayerARPG.MMO
             {
                 return StatusCode(404);
             }
-            guild.IncreaseGuildExp(_configManager.GetSocialSystemSetting().GuildExpTree, request.Exp);
+            guild.IncreaseGuildExp(GuildExpTree, request.Exp);
             // Update to cache
             await DatabaseCache.SetGuild(guild);
             // Update to database
@@ -1170,7 +1176,7 @@ namespace MultiplayerARPG.MMO
             if (guildResult.HasValue)
                 return guildResult.Value;
             // Read guild from database
-            GuildData guild = await Database.GetGuild(id, _configManager.GetSocialSystemSetting().GuildMemberRoles);
+            GuildData guild = await Database.GetGuild(id, GuildMemberRoles);
             if (guild != null)
             {
                 // Store guild to cache
