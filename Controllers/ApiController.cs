@@ -163,7 +163,16 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/{DatabaseApiPath.UpdateCharacter}")]
         public async UniTask<IActionResult> UpdateCharacter(UpdateCharacterReq request)
         {
+            PlayerCharacterData playerCharacter = await GetCharacter(request.CharacterData.Id);
+            if (playerCharacter == null)
+                return NotFound();
             await Database.UpdateCharacter(request.State, request.CharacterData, request.SummonBuffs, request.DeleteStorageReservation);
+            List<UniTask> tasks = new List<UniTask>
+            {
+                DatabaseCache.SetPlayerCharacter(request.CharacterData),
+                DatabaseCache.SetSummonBuffs(request.CharacterData.Id, request.SummonBuffs),
+            };
+            await UniTask.WhenAll(tasks);
             return Ok(new CharacterResp()
             {
                 CharacterData = request.CharacterData,
@@ -173,14 +182,18 @@ namespace MultiplayerARPG.MMO
         [HttpPost($"/{DatabaseApiPath.DeleteCharacter}")]
         public async UniTask<IActionResult> DeleteCharacter(DeleteCharacterReq request)
         {
-            // Remove data from cache
             PlayerCharacterData playerCharacter = await GetCharacter(request.CharacterId);
-            if (playerCharacter != null)
-            {
-                await DatabaseCache.RemoveSocialCharacter(playerCharacter.Id);
-            }
+            if (playerCharacter == null)
+                return NotFound();
             // Delete data from database
             await Database.DeleteCharacter(request.UserId, request.CharacterId);
+            // Remove data from cache
+            if (playerCharacter != null)
+            {
+                await UniTask.WhenAll(
+                    DatabaseCache.RemovePlayerCharacter(playerCharacter.Id),
+                    DatabaseCache.RemoveSocialCharacter(playerCharacter.Id));
+            }
             return Ok();
         }
 
