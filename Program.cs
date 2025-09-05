@@ -29,6 +29,9 @@ if (!int.TryParse(builder.Configuration["CacheManager"], out int cacheManager))
     cacheManager = 0;
 switch (cacheManager)
 {
+    case 1:
+        builder.Services.AddSingleton<IDatabaseCache, RedisDatabaseCache>();
+        break;
     default:
         builder.Services.AddSingleton<IDatabaseCache, LocalDatabaseCache>();
         break;
@@ -39,6 +42,9 @@ if (!int.TryParse(builder.Configuration["DatabaseServer"], out int databaseServe
     databaseServer = 0;
 switch (databaseServer)
 {
+    case 2:
+        builder.Services.AddSingleton<IDatabase, PostgreSQLDatabase>();
+        break;
     case 1:
         builder.Services.AddSingleton<IDatabase, SQLiteDatabase>();
         break;
