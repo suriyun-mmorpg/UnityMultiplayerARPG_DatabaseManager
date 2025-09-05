@@ -1,3 +1,4 @@
+using Microsoft.OpenApi.Models;
 using MultiplayerARPG.MMO;
 using Newtonsoft.Json.Serialization;
 
@@ -73,7 +74,33 @@ builder.Services.AddAuthentication(AppSecretAuthenticationHandler.SCHEME)
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(o =>
+{
+    o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",   // must be lower-case
+        BearerFormat = "Unknow"
+    });
+
+    o.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
@@ -81,7 +108,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(o =>
+    {
+        o.SwaggerEndpoint("/swagger/v1/swagger.json", "MMORPG KIT DB SERVICE - API");
+        o.RoutePrefix = "__dev/api"; // This makes Swagger UI available at /__dev/api/index.html
+    });
 }
 
 app.UseAuthentication();
