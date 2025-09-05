@@ -1,0 +1,4 @@
+{
+  "redisConnectionConfig": "localhost",
+  "redisDbPrefix": "gamedb:"
+}

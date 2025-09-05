@@ -1,0 +1,8 @@
+{
+  "pgAddress": "127.0.0.1",
+  "pgPort": 5432,
+  "pgUsername": "postgres",
+  "pgPassword": "localdb",
+  "pgDbName": "wzm",
+  "pgConnectionString": "Host=localhost;Port=6501;Username=\"postgres\";Password=\"ARM_UAT_SECRET\";Database=\"arm_lastwar\";Include Error Detail=true"
+}
