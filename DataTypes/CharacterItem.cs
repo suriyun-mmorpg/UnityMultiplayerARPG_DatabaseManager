@@ -2,6 +2,34 @@
 {
     public partial struct CharacterItem
     {
+        public MinimalItem GetItem()
+        {
+            if (!DataManager.Items.TryGetValue(dataId, out MinimalItem item))
+                return null;
+            return item;
+        }
+
+        public MinimalItem GetEquipmentItem()
+        {
+            if (!DataManager.Items.TryGetValue(dataId, out MinimalItem item) || !item.IsEquipment())
+                return null;
+            return item;
+        }
+
+        public MinimalItem GetWeaponItem()
+        {
+            if (!DataManager.Items.TryGetValue(dataId, out MinimalItem item) || !item.IsWeapon())
+                return null;
+            return item;
+        }
+
+        public MinimalItem GetPetItem()
+        {
+            if (!DataManager.Items.TryGetValue(dataId, out MinimalItem item) || !item.IsPet())
+                return null;
+            return item;
+        }
+
         public bool IsEmpty()
         {
             return Equals(Empty);
